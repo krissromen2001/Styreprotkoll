@@ -55,9 +55,9 @@ export default function NewCompanyPage() {
     }));
     formData.set("members", JSON.stringify(members));
 
-    const result = await registerCompany(formData);
-    if (result?.error) {
-      setError(result.error);
+    const response = await registerCompany(formData);
+    if (response?.error) {
+      setError(response.error);
       setSubmitting(false);
       return;
     }

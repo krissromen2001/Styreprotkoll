@@ -7,7 +7,6 @@ import {
   getCompany,
   getSignatures,
   getBoardMembers,
-  getBoardMember,
   getBoardMemberByEmail,
 } from "@/lib/store";
 import { formatDate } from "@/lib/utils";
