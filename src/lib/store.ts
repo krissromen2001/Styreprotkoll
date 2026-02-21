@@ -47,6 +47,7 @@ export interface Meeting {
   room: string | null;
   date: string;
   time: string;
+  type: "board_meeting" | "general_assembly" | "extraordinary_general_assembly";
   status: "draft" | "invitation_sent" | "protocol_draft" | "pending_signatures" | "signed";
   createdById: string | null;
   createdAt: Date;

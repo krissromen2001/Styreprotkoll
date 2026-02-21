@@ -8,6 +8,13 @@
       "when": 1771682660205,
       "tag": "0000_premium_omega_flight",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771686883554,
+      "tag": "0001_lush_celestials",
+      "breakpoints": true
     }
   ]
 }

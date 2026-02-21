@@ -19,6 +19,12 @@ export const meetingStatusEnum = pgEnum("meeting_status", [
   "signed",
 ]);
 
+export const meetingTypeEnum = pgEnum("meeting_type", [
+  "board_meeting",
+  "general_assembly",
+  "extraordinary_general_assembly",
+]);
+
 // Users — login identity, shared across companies
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -65,6 +71,7 @@ export const meetings = pgTable("meetings", {
   room: varchar("room", { length: 255 }),
   date: varchar("date", { length: 20 }).notNull(),
   time: varchar("time", { length: 10 }).notNull(),
+  type: meetingTypeEnum("type").notNull().default("board_meeting"),
   status: meetingStatusEnum("status").notNull().default("draft"),
   createdById: uuid("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),

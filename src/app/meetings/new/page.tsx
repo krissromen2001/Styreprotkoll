@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { DEFAULT_FIRST_AGENDA_ITEM, DEFAULT_LAST_AGENDA_ITEM } from "@/lib/constants";
+import {
+  DEFAULT_FIRST_AGENDA_ITEM,
+  DEFAULT_LAST_AGENDA_ITEM,
+  DEFAULT_GENERAL_ASSEMBLY_ITEMS,
+  DEFAULT_EXTRAORDINARY_ASSEMBLY_ITEMS,
+  MEETING_TYPE_LABELS,
+} from "@/lib/constants";
 import { createNewMeeting } from "@/lib/actions/meetings";
 
 interface AgendaItem {
@@ -18,6 +24,9 @@ function genId() {
 
 export default function NewMeetingPage() {
   const router = useRouter();
+  const [meetingType, setMeetingType] = useState<
+    "board_meeting" | "general_assembly" | "extraordinary_general_assembly"
+  >("board_meeting");
   const [address, setAddress] = useState("");
   const [room, setRoom] = useState("");
   const [date, setDate] = useState("");
@@ -27,6 +36,28 @@ export default function NewMeetingPage() {
   const [agendaItems, setAgendaItems] = useState<AgendaItem[]>([
     { id: genId(), title: DEFAULT_FIRST_AGENDA_ITEM.title, description: DEFAULT_FIRST_AGENDA_ITEM.description },
   ]);
+
+  const buildDefaultAgenda = (
+    type: "board_meeting" | "general_assembly" | "extraordinary_general_assembly"
+  ) => {
+    const baseItems = [
+      { id: genId(), title: DEFAULT_FIRST_AGENDA_ITEM.title, description: DEFAULT_FIRST_AGENDA_ITEM.description },
+    ];
+
+    if (type === "general_assembly") {
+      DEFAULT_GENERAL_ASSEMBLY_ITEMS.forEach((item) => {
+        baseItems.push({ id: genId(), title: item.title, description: item.description });
+      });
+    }
+
+    if (type === "extraordinary_general_assembly") {
+      DEFAULT_EXTRAORDINARY_ASSEMBLY_ITEMS.forEach((item) => {
+        baseItems.push({ id: genId(), title: item.title, description: item.description });
+      });
+    }
+
+    return baseItems;
+  };
 
   const addItem = () => {
     setAgendaItems([...agendaItems, { id: genId(), title: "", description: "" }]);
@@ -78,6 +109,7 @@ export default function NewMeetingPage() {
     formData.set("room", room);
     formData.set("date", date);
     formData.set("time", time);
+    formData.set("type", meetingType);
     formData.set("agendaItems", JSON.stringify(allItems.map((item) => ({
       title: item.title,
       description: item.description,
@@ -93,7 +125,7 @@ export default function NewMeetingPage() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Nytt styremøte</h1>
+      <h1 className="text-2xl font-bold mb-6">Nytt møte</h1>
 
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-md mb-6">{error}</div>
@@ -103,6 +135,24 @@ export default function NewMeetingPage() {
         <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
           <h2 className="font-semibold text-gray-900">Møtedetaljer</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Møtetype</label>
+              <select
+                value={meetingType}
+                onChange={(e) => {
+                  const type = e.target.value as typeof meetingType;
+                  setMeetingType(type);
+                  setAgendaItems(buildDefaultAgenda(type));
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              >
+                <option value="board_meeting">{MEETING_TYPE_LABELS.board_meeting}</option>
+                <option value="general_assembly">{MEETING_TYPE_LABELS.general_assembly}</option>
+                <option value="extraordinary_general_assembly">
+                  {MEETING_TYPE_LABELS.extraordinary_general_assembly}
+                </option>
+              </select>
+            </div>
             <div className="sm:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
               <input

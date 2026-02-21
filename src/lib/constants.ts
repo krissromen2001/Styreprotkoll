@@ -6,6 +6,12 @@ export const MEETING_STATUS_LABELS: Record<string, string> = {
   signed: "Signert",
 };
 
+export const MEETING_TYPE_LABELS: Record<string, string> = {
+  board_meeting: "Styremøte",
+  general_assembly: "Generalforsamling",
+  extraordinary_general_assembly: "Ekstraordinær generalforsamling",
+};
+
 export const MEETING_STATUS_COLORS: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
   invitation_sent: "bg-blue-100 text-blue-700",
@@ -30,3 +36,18 @@ export const DEFAULT_LAST_AGENDA_ITEM = {
   title: "Eventuelt",
   description: "",
 };
+
+export const DEFAULT_GENERAL_ASSEMBLY_ITEMS = [
+  { title: "Valg av møteleder", description: "" },
+  { title: "Valg av referent", description: "" },
+  { title: "Godkjenning av årsregnskap og årsberetning", description: "" },
+  { title: "Gjennomgang av budsjett", description: "" },
+  { title: "Valg av styremedlemmer", description: "" },
+  { title: "Valg av styreleder", description: "" },
+];
+
+export const DEFAULT_EXTRAORDINARY_ASSEMBLY_ITEMS = [
+  { title: "Valg av møteleder", description: "" },
+  { title: "Valg av referent", description: "" },
+  { title: "Saker til ekstraordinær behandling", description: "" },
+];

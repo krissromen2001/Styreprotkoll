@@ -25,6 +25,7 @@ interface InvitationPDFProps {
   room: string;
   date: string;
   time: string;
+  meetingType?: "board_meeting" | "general_assembly" | "extraordinary_general_assembly";
   agendaItems: AgendaItem[];
 }
 
@@ -35,12 +36,20 @@ export function InvitationPDF({
   room,
   date,
   time,
+  meetingType = "board_meeting",
   agendaItems,
 }: InvitationPDFProps) {
+  const meetingTitle =
+    meetingType === "general_assembly"
+      ? "Generalforsamling"
+      : meetingType === "extraordinary_general_assembly"
+        ? "Ekstraordinær generalforsamling"
+        : "Styremøte";
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Text style={styles.title}>Innkalling til styremøte</Text>
+        <Text style={styles.title}>Innkalling til {meetingTitle.toLowerCase()}</Text>
 
         <View style={styles.section}>
           <Text style={styles.subtitle}>

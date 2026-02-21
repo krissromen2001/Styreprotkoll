@@ -30,6 +30,10 @@ export async function createNewMeeting(formData: FormData) {
   const room = formData.get("room") as string;
   const date = formData.get("date") as string;
   const time = formData.get("time") as string;
+  const type = formData.get("type") as
+    | "board_meeting"
+    | "general_assembly"
+    | "extraordinary_general_assembly";
   const agendaJson = formData.get("agendaItems") as string;
 
   if (!companyId || !address || !date || !time) {
@@ -51,6 +55,7 @@ export async function createNewMeeting(formData: FormData) {
     room: room || "",
     date,
     time,
+    type: type || "board_meeting",
     status: "draft",
     title: null,
     createdById: session.user.id ?? null,

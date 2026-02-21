@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MEETING_STATUS_LABELS, MEETING_STATUS_COLORS, ROLE_LABELS } from "@/lib/constants";
+import { MEETING_STATUS_LABELS, MEETING_STATUS_COLORS, ROLE_LABELS, MEETING_TYPE_LABELS } from "@/lib/constants";
 import {
   getMeeting,
   getAgendaItems,
@@ -70,7 +70,7 @@ export default async function MeetingDetailPage({
         <div>
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-2xl font-bold text-gray-900">
-              Styremøte {formatDate(meeting.date)}
+              {MEETING_TYPE_LABELS[meeting.type]} {formatDate(meeting.date)}
             </h1>
             <span className={`text-xs px-2 py-1 rounded-full font-medium ${MEETING_STATUS_COLORS[meeting.status]}`}>
               {MEETING_STATUS_LABELS[meeting.status]}

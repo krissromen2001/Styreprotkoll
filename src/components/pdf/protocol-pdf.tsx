@@ -36,6 +36,7 @@ interface ProtocolPDFProps {
   room: string;
   date: string;
   time: string;
+  meetingType?: "board_meeting" | "general_assembly" | "extraordinary_general_assembly";
   agendaItems: AgendaItem[];
   signatures: Signature[];
   location?: string;
@@ -48,15 +49,23 @@ export function ProtocolPDF({
   room,
   date,
   time,
+  meetingType = "board_meeting",
   agendaItems,
   signatures,
   location = "Trondheim, Norge",
 }: ProtocolPDFProps) {
+  const meetingTitle =
+    meetingType === "general_assembly"
+      ? "Generalforsamling"
+      : meetingType === "extraordinary_general_assembly"
+        ? "Ekstraordinær generalforsamling"
+        : "Styremøte";
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>
-          Protokoll til styremøte i {companyName} (org nr {orgNumber})
+          Protokoll til {meetingTitle.toLowerCase()} i {companyName} (org nr {orgNumber})
         </Text>
 
         <View style={styles.section}>

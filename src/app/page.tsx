@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MEETING_STATUS_LABELS, MEETING_STATUS_COLORS } from "@/lib/constants";
+import { MEETING_STATUS_LABELS, MEETING_STATUS_COLORS, MEETING_TYPE_LABELS } from "@/lib/constants";
 import {
   getAgendaItems,
   getSignatures,
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="font-semibold text-gray-900">
-                  Styremøte {formatDate(meeting.date)}
+                  {MEETING_TYPE_LABELS[meeting.type]} {formatDate(meeting.date)}
                 </h2>
                 <span
                   className={`text-xs px-2 py-1 rounded-full font-medium ${
