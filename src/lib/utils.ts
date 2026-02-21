@@ -1,0 +1,24 @@
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+export function formatDate(dateStr: string): string {
+  const [year, month, day] = dateStr.split("-");
+  return `${day}.${month}.${year}`;
+}
+
+export function formatDateISO(dateStr: string): string {
+  // Convert from DD.MM.YYYY to YYYY-MM-DD
+  if (dateStr.includes(".")) {
+    const [day, month, year] = dateStr.split(".");
+    return `${year}-${month}-${day}`;
+  }
+  return dateStr;
+}
+
+export function formatDateTime(dateStr: string, timeStr: string): string {
+  return `${formatDate(dateStr)} kl ${timeStr}`;
+}
