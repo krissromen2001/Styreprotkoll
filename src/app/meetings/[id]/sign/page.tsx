@@ -20,6 +20,7 @@ export default async function SignProtocolPage({
   const { id } = await params;
   const meeting = await getMeeting(id);
   if (!meeting) notFound();
+  const meetingId = meeting.id;
 
   const sp = searchParams ? await searchParams : undefined;
   const token = sp?.token;
@@ -53,7 +54,7 @@ export default async function SignProtocolPage({
     }
 
     const member = await getBoardMember(signingToken.boardMemberId);
-    const sig = await getSignatureByMember(meeting.id, signingToken.boardMemberId);
+    const sig = await getSignatureByMember(meetingId, signingToken.boardMemberId);
     if (sig?.signedAt) {
       return (
         <div className="max-w-3xl mx-auto">
@@ -149,7 +150,7 @@ export default async function SignProtocolPage({
   async function signAsUserAction(formData: FormData) {
     "use server";
     const typedName = (formData.get("typedName") as string) || "";
-    await signProtocolAsUser(meeting.id, typedName);
+    await signProtocolAsUser(meetingId, typedName);
   }
 
   return (
