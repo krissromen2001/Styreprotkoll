@@ -8,6 +8,7 @@ const navItems = [
   { href: "/", label: "Dashboard" },
   { href: "/meetings/new", label: "Nytt møte" },
   { href: "/board-members", label: "Styremedlemmer" },
+  { href: "/companies/connect", label: "Koble til selskap" },
 ];
 
 export function Header() {

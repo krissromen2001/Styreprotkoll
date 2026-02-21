@@ -130,6 +130,24 @@ export async function getBoardMember(id: string): Promise<BoardMember | undefine
   return rows[0];
 }
 
+export async function getBoardMemberByNameRole(
+  companyId: string,
+  name: string,
+  role: BoardMember["role"]
+): Promise<BoardMember | undefined> {
+  const rows = await db
+    .select()
+    .from(boardMembers)
+    .where(
+      and(
+        eq(boardMembers.companyId, companyId),
+        eq(boardMembers.name, name),
+        eq(boardMembers.role, role)
+      )
+    );
+  return rows[0];
+}
+
 export async function getBoardMemberByEmail(
   companyId: string,
   email: string

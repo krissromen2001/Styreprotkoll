@@ -1,37 +1,63 @@
 "use client";
 
 import { useState } from "react";
+import { registerUser } from "@/lib/actions/auth";
 import { signIn } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import Link from "next/link";
 
-function SignInForm() {
+export default function SignUpPage() {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const searchParams = useSearchParams();
-  const error = searchParams.get("error");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
+
+    const formData = new FormData();
+    formData.set("name", name);
+    formData.set("email", email);
+    formData.set("password", password);
+
+    const result = await registerUser(formData);
+    if (result?.error) {
+      setError(result.error);
+      setLoading(false);
+      return;
+    }
+
     await signIn("credentials", { email, password, callbackUrl: "/" });
   };
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-sm border max-w-md w-full">
-        <h1 className="text-2xl font-bold mb-2">Logg inn</h1>
+        <h1 className="text-2xl font-bold mb-2">Opprett konto</h1>
         <p className="text-gray-600 mb-6">
-          Logg inn med e-post og passord.
+          Lag en brukerkonto for å fortsette.
         </p>
         {error && (
           <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm mb-4">
-            Ugyldig e-post eller passord.
+            {error}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Fullt navn
+            </label>
+            <input
+              id="name"
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+            />
+          </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
               E-postadresse
@@ -54,6 +80,7 @@ function SignInForm() {
               id="password"
               type="password"
               required
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
@@ -64,24 +91,16 @@ function SignInForm() {
             disabled={loading}
             className="w-full bg-black text-white py-2 px-4 rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors"
           >
-            {loading ? "Logger inn..." : "Logg inn"}
+            {loading ? "Oppretter..." : "Opprett konto"}
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-4">
-          Har du ikke bruker? {" "}
-          <Link href="/auth/signup" className="text-black hover:underline">
-            Opprett konto
+          Har du allerede bruker?{" "}
+          <Link href="/auth/signin" className="text-black hover:underline">
+            Logg inn
           </Link>
         </p>
       </div>
     </div>
-  );
-}
-
-export default function SignInPage() {
-  return (
-    <Suspense>
-      <SignInForm />
-    </Suspense>
   );
 }

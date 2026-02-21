@@ -43,13 +43,13 @@ export default async function DashboardPage() {
         <div className="text-4xl mb-4">&#128203;</div>
         <h2 className="text-lg font-semibold text-gray-900 mb-2">Velkommen til Styreprotokoll</h2>
         <p className="text-gray-500 mb-6">
-          Start med å registrere selskapet ditt. Vi henter informasjon fra Brønnøysundregistrene automatisk.
+          Koble til selskapet ditt ved å søke i Brønnøysundregistrene.
         </p>
         <Link
-          href="/companies/new"
+          href="/companies/connect"
           className="inline-block bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
         >
-          Registrer selskap
+          Koble til selskap
         </Link>
       </div>
     );
