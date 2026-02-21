@@ -14,14 +14,15 @@ export default async function SignProtocolPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams?: { token?: string };
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ token?: string }>;
 }) {
-  const { id } = params;
+  const { id } = await params;
   const meeting = await getMeeting(id);
   if (!meeting) notFound();
 
-  const token = searchParams?.token;
+  const sp = searchParams ? await searchParams : undefined;
+  const token = sp?.token;
 
   if (token) {
     const signingToken = await getSigningTokenByToken(token);
