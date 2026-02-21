@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { CompanySwitcherMenu } from "@/components/layout/company-switcher-menu";
 
 const navItems = [
-  { href: "/", label: "Dashboard" },
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/meetings/new", label: "Nytt møte" },
-  { href: "/board-members", label: "Styremedlemmer" },
-  { href: "/companies/connect", label: "Koble til selskap" },
 ];
 
 export function Header() {
@@ -18,28 +17,52 @@ export function Header() {
   if (pathname?.startsWith("/auth")) return null;
 
   return (
-    <header className="bg-white border-b border-gray-200">
-      <div className="max-w-5xl mx-auto px-4">
+    <header className="sticky top-0 z-20 border-b border-black/5 bg-white/70 backdrop-blur">
+      <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="text-xl font-bold text-gray-900">
+          <Link href="/" className="text-xl font-semibold tracking-tight text-slate-900">
             Styreprotokoll
           </Link>
-          <nav className="flex gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <div className="flex items-center gap-3">
+            {pathname === "/" ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/auth/signin"
+                  className="px-5 py-2 rounded-full border border-black/10 hover:bg-white transition-colors text-sm font-medium"
+                >
+                  Logg inn
+                </Link>
+                <Link
+                  href="/auth/signup"
+                  className="bg-slate-900 text-white px-5 py-2 rounded-full hover:bg-black transition-colors text-sm font-medium shadow-sm"
+                >
+                  Opprett bruker
+                </Link>
+              </div>
+            ) : (
+              <>
+                <nav className="flex items-center gap-2">
+                  {navItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                        pathname === item.href
+                          ? "bg-slate-900 text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white"
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
+                <div className="hidden sm:block">
+                  <CompanySwitcherMenu />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>

@@ -32,7 +32,7 @@ export default async function SignProtocolPage({
         <div className="max-w-3xl mx-auto">
           <div className="text-center py-16">
             <p className="text-gray-500 mb-4">Ugyldig eller utløpt signeringslenke.</p>
-            <Link href="/" className="text-sm text-black hover:underline">
+            <Link href="/dashboard" className="text-sm text-black hover:underline">
               Tilbake til oversikten
             </Link>
           </div>
@@ -45,7 +45,7 @@ export default async function SignProtocolPage({
         <div className="max-w-3xl mx-auto">
           <div className="text-center py-16">
             <p className="text-gray-500 mb-4">Signeringslenken er utløpt eller allerede brukt.</p>
-            <Link href="/" className="text-sm text-black hover:underline">
+            <Link href="/dashboard" className="text-sm text-black hover:underline">
               Tilbake til oversikten
             </Link>
           </div>
@@ -60,7 +60,7 @@ export default async function SignProtocolPage({
         <div className="max-w-3xl mx-auto">
           <div className="text-center py-16">
             <p className="text-gray-500 mb-4">Du har allerede signert denne protokollen.</p>
-            <Link href="/" className="text-sm text-black hover:underline">
+            <Link href="/dashboard" className="text-sm text-black hover:underline">
               Tilbake til oversikten
             </Link>
           </div>
@@ -125,7 +125,7 @@ export default async function SignProtocolPage({
       <div className="max-w-3xl mx-auto">
         <div className="text-center py-16">
           <p className="text-gray-500 mb-4">Du er ikke registrert som styremedlem for dette møtet.</p>
-          <Link href="/" className="text-sm text-black hover:underline">
+          <Link href="/dashboard" className="text-sm text-black hover:underline">
             Tilbake til oversikten
           </Link>
         </div>
@@ -139,7 +139,7 @@ export default async function SignProtocolPage({
       <div className="max-w-3xl mx-auto">
         <div className="text-center py-16">
           <p className="text-gray-500 mb-4">Du har allerede signert denne protokollen.</p>
-          <Link href="/" className="text-sm text-black hover:underline">
+          <Link href="/dashboard" className="text-sm text-black hover:underline">
             Tilbake til oversikten
           </Link>
         </div>

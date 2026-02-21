@@ -1,0 +1,1 @@
+ALTER TABLE "meetings" ADD COLUMN "protocol_storage_path" text;

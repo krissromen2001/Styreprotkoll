@@ -62,3 +62,22 @@ export async function removeBoardMember(id: string) {
   await deleteBoardMember(id);
   revalidatePath("/board-members");
 }
+
+export async function updateBoardMemberEmail(id: string, email: string) {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return { error: "Du må være innlogget" };
+  }
+  const member = await getBoardMember(id);
+  if (!member) return { error: "Styremedlem ikke funnet" };
+  const admin = await getBoardMemberByEmail(member.companyId, session.user.email);
+  if (!admin || admin.role !== "styreleder") {
+    return { error: "Du har ikke tilgang til å oppdatere e-post" };
+  }
+  const trimmed = email.trim();
+  if (!trimmed) {
+    return { error: "E-post kan ikke være tom" };
+  }
+  await updateBoardMember(id, { email: trimmed });
+  revalidatePath("/board-members");
+}

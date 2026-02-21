@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { registerUser } from "@/lib/actions/auth";
-import { signIn } from "next-auth/react";
 import Link from "next/link";
 
 export default function SignUpPage() {
@@ -11,11 +10,13 @@ export default function SignUpPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setSuccess("");
 
     const formData = new FormData();
     formData.set("name", name);
@@ -29,7 +30,8 @@ export default function SignUpPage() {
       return;
     }
 
-    await signIn("credentials", { email, password, callbackUrl: "/" });
+    setSuccess("Vi har sendt deg en e-post. Klikk lenken for å bekrefte kontoen.");
+    setLoading(false);
   };
 
   return (
@@ -42,6 +44,11 @@ export default function SignUpPage() {
         {error && (
           <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm mb-4">
             {error}
+          </div>
+        )}
+        {success && (
+          <div className="bg-emerald-50 text-emerald-700 p-3 rounded-md text-sm mb-4">
+            {success}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">

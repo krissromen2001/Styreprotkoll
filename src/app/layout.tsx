@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
+  subsets: ["latin"],
+});
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
 });
 
@@ -20,9 +24,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="no">
-      <body className={`${geistSans.variable} font-sans antialiased bg-gray-50 min-h-screen`}>
+      <body className={`${manrope.variable} ${fraunces.variable} font-sans antialiased bg-[#f7f6f2] min-h-screen text-slate-900`}>
         <Header />
-        <main className="max-w-5xl mx-auto px-4 py-8">
+        <main className="max-w-6xl mx-auto px-4 py-10">
           {children}
         </main>
       </body>

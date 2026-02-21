@@ -35,6 +35,17 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const emailVerificationTokens = pgTable("email_verification_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Companies — each company has its own board and meetings
 export const companies = pgTable("companies", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -73,6 +84,7 @@ export const meetings = pgTable("meetings", {
   time: varchar("time", { length: 10 }).notNull(),
   type: meetingTypeEnum("type").notNull().default("board_meeting"),
   status: meetingStatusEnum("status").notNull().default("draft"),
+  protocolStoragePath: text("protocol_storage_path"),
   createdById: uuid("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -103,6 +115,18 @@ export const signatures = pgTable("signatures", {
   typedName: varchar("typed_name", { length: 255 }),
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
+});
+
+// Meeting attendance — which board members were present
+export const meetingAttendees = pgTable("meeting_attendees", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  meetingId: uuid("meeting_id")
+    .notNull()
+    .references(() => meetings.id, { onDelete: "cascade" }),
+  boardMemberId: uuid("board_member_id")
+    .notNull()
+    .references(() => boardMembers.id),
+  present: boolean("present").notNull().default(true),
 });
 
 // One-time signing links for email-based signing

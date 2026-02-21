@@ -1,12 +1,15 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   agendaItems,
   boardMembers,
   companies,
+  emailVerificationTokens,
   meetings,
+  meetingAttendees,
   signatures,
   signingTokens,
+  users,
 } from "@/lib/db/schema";
 
 export interface Company {
@@ -49,6 +52,7 @@ export interface Meeting {
   time: string;
   type: "board_meeting" | "general_assembly" | "extraordinary_general_assembly";
   status: "draft" | "invitation_sent" | "protocol_draft" | "pending_signatures" | "signed";
+  protocolStoragePath: string | null;
   createdById: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -62,10 +66,26 @@ export interface Signature {
   typedName: string | null;
 }
 
+export interface MeetingAttendee {
+  id: string;
+  meetingId: string;
+  boardMemberId: string;
+  present: boolean;
+}
+
 export interface SigningToken {
   id: string;
   meetingId: string;
   boardMemberId: string;
+  token: string;
+  expiresAt: Date;
+  usedAt: Date | null;
+  createdAt: Date;
+}
+
+export interface EmailVerificationToken {
+  id: string;
+  userId: string;
   token: string;
   expiresAt: Date;
   usedAt: Date | null;
@@ -243,6 +263,38 @@ export async function updateMeeting(
   return rows[0] ?? null;
 }
 
+// --- Email verification ---
+export async function createEmailVerificationToken(data: {
+  userId: string;
+  token: string;
+  expiresAt: Date;
+}): Promise<EmailVerificationToken> {
+  const rows = await db.insert(emailVerificationTokens).values(data).returning();
+  return rows[0];
+}
+
+export async function getEmailVerificationToken(token: string): Promise<EmailVerificationToken | undefined> {
+  const rows = await db
+    .select()
+    .from(emailVerificationTokens)
+    .where(eq(emailVerificationTokens.token, token));
+  return rows[0];
+}
+
+export async function markEmailVerificationTokenUsed(id: string): Promise<void> {
+  await db
+    .update(emailVerificationTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(emailVerificationTokens.id, id));
+}
+
+export async function markUserEmailVerified(userId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({ emailVerified: new Date() })
+    .where(eq(users.id, userId));
+}
+
 // --- Agenda Items ---
 export async function getAgendaItems(meetingId: string): Promise<AgendaItem[]> {
   return db
@@ -250,6 +302,23 @@ export async function getAgendaItems(meetingId: string): Promise<AgendaItem[]> {
     .from(agendaItems)
     .where(eq(agendaItems.meetingId, meetingId))
     .orderBy(asc(agendaItems.sortOrder));
+}
+
+export async function getAgendaCountForCompanyYear(
+  companyId: string,
+  year: string
+): Promise<number> {
+  const rows = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(agendaItems)
+    .innerJoin(meetings, eq(agendaItems.meetingId, meetings.id))
+    .where(
+      and(
+        eq(meetings.companyId, companyId),
+        sql`substring(${meetings.date}, 1, 4) = ${year}`
+      )
+    );
+  return Number(rows[0]?.count ?? 0);
 }
 
 export async function createAgendaItem(
@@ -279,6 +348,32 @@ export async function getSignatures(meetingId: string): Promise<Signature[]> {
     .where(eq(signatures.meetingId, meetingId));
 }
 
+export async function getMeetingAttendees(meetingId: string): Promise<MeetingAttendee[]> {
+  return db
+    .select()
+    .from(meetingAttendees)
+    .where(eq(meetingAttendees.meetingId, meetingId));
+}
+
+export async function replaceMeetingAttendees(
+  meetingId: string,
+  attendees: { boardMemberId: string; present: boolean }[]
+): Promise<void> {
+  await db.delete(meetingAttendees).where(eq(meetingAttendees.meetingId, meetingId));
+  if (attendees.length === 0) return;
+  await db.insert(meetingAttendees).values(
+    attendees.map((a) => ({
+      meetingId,
+      boardMemberId: a.boardMemberId,
+      present: a.present,
+    }))
+  );
+}
+
+export async function deleteSignaturesByMeeting(meetingId: string): Promise<void> {
+  await db.delete(signatures).where(eq(signatures.meetingId, meetingId));
+}
+
 export async function createSignature(
   data: Omit<Signature, "id">
 ): Promise<Signature> {
@@ -296,6 +391,10 @@ export async function updateSignature(
     .where(eq(signatures.id, id))
     .returning();
   return rows[0] ?? null;
+}
+
+export async function deleteMeetingById(id: string): Promise<void> {
+  await db.delete(meetings).where(eq(meetings.id, id));
 }
 
 export async function getSignatureByMember(

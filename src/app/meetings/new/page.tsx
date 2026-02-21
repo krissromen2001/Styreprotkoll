@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DEFAULT_FIRST_AGENDA_ITEM,
@@ -9,6 +9,7 @@ import {
   DEFAULT_EXTRAORDINARY_ASSEMBLY_ITEMS,
   MEETING_TYPE_LABELS,
 } from "@/lib/constants";
+import { formatAgendaNumber } from "@/lib/utils";
 import { createNewMeeting } from "@/lib/actions/meetings";
 
 interface AgendaItem {
@@ -27,6 +28,9 @@ export default function NewMeetingPage() {
   const [meetingType, setMeetingType] = useState<
     "board_meeting" | "general_assembly" | "extraordinary_general_assembly"
   >("board_meeting");
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [baseOffset, setBaseOffset] = useState(0);
+  const [prefilledAddress, setPrefilledAddress] = useState(false);
   const [address, setAddress] = useState("");
   const [room, setRoom] = useState("");
   const [date, setDate] = useState("");
@@ -93,23 +97,25 @@ export default function NewMeetingPage() {
     setSubmitting(true);
     setError("");
 
-    // Get company ID from API
-    const companiesRes = await fetch("/api/company");
-    const companiesData = await companiesRes.json();
-    if (!companiesData.id) {
+    const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    const intent = submitter?.value || submitter?.getAttribute("data-intent") || "draft";
+
+    const activeCompanyId = companyId;
+    if (!activeCompanyId) {
       setError("Du må registrere et selskap først.");
       setSubmitting(false);
-      router.push("/companies/new");
+      router.push("/companies/connect");
       return;
     }
 
     const formData = new FormData();
-    formData.set("companyId", companiesData.id);
+    formData.set("companyId", activeCompanyId);
     formData.set("address", address);
     formData.set("room", room);
     formData.set("date", date);
     formData.set("time", time);
     formData.set("type", meetingType);
+    formData.set("intent", intent);
     formData.set("agendaItems", JSON.stringify(allItems.map((item) => ({
       title: item.title,
       description: item.description,
@@ -123,20 +129,60 @@ export default function NewMeetingPage() {
     }
   };
 
+  useEffect(() => {
+    const loadCompany = async () => {
+      const companiesRes = await fetch("/api/company");
+      const companiesData = await companiesRes.json();
+      if (companiesData?.id) {
+        setCompanyId(companiesData.id);
+        if (!prefilledAddress && companiesData.address) {
+          setAddress(companiesData.address);
+          setPrefilledAddress(true);
+        }
+      }
+    };
+    loadCompany();
+  }, [prefilledAddress]);
+
+  useEffect(() => {
+    const loadBase = async () => {
+      if (!companyId || !date) {
+        setBaseOffset(0);
+        return;
+      }
+      const res = await fetch("/api/agenda-sequence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ companyId, date }),
+      });
+      const data = await res.json();
+      setBaseOffset(typeof data.base === "number" ? data.base : 0);
+    };
+    loadBase();
+  }, [companyId, date]);
+
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Nytt møte</h1>
+    <div className="max-w-3xl mx-auto">
+      <div className="mb-8">
+        <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Nytt møte</p>
+        <h1 className="text-3xl sm:text-4xl font-semibold text-slate-900 mt-2 font-display">
+          Opprett innkalling
+        </h1>
+        <p className="text-slate-600 mt-2">
+          Fyll inn møtedetaljer og dagsorden. Du kan lagre et utkast eller sende innkalling direkte.
+        </p>
+      </div>
 
       {error && (
-        <div className="bg-red-50 text-red-700 p-4 rounded-md mb-6">{error}</div>
+        <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 border border-red-100">{error}</div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
-          <h2 className="font-semibold text-gray-900">Møtedetaljer</h2>
+        <div className="bg-white/80 border border-black/5 rounded-2xl p-6 sm:p-7 space-y-4 shadow-sm">
+          <h2 className="font-semibold text-slate-900">Møtedetaljer</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Møtetype</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Møtetype</label>
               <select
                 value={meetingType}
                 onChange={(e) => {
@@ -144,7 +190,7 @@ export default function NewMeetingPage() {
                   setMeetingType(type);
                   setAgendaItems(buildDefaultAgenda(type));
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               >
                 <option value="board_meeting">{MEETING_TYPE_LABELS.board_meeting}</option>
                 <option value="general_assembly">{MEETING_TYPE_LABELS.general_assembly}</option>
@@ -154,55 +200,55 @@ export default function NewMeetingPage() {
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Adresse</label>
               <input
                 type="text"
                 required
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 placeholder="F.eks. Sem Sælands vei 1, 7034 Trondheim"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Rom</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Rom</label>
               <input
                 type="text"
                 value={room}
                 onChange={(e) => setRoom(e.target.value)}
                 placeholder="F.eks. Store Møterom, FRAM"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Dato</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Dato</label>
                 <input
                   type="date"
                   required
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Klokkeslett</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Klokkeslett</label>
                 <input
                   type="time"
                   required
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  className="w-full px-3 py-2.5 border border-black/10 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-lg p-5 space-y-4">
+        <div className="bg-white/80 border border-black/5 rounded-2xl p-6 sm:p-7 space-y-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Dagsorden</h2>
-            <button type="button" onClick={addItem} className="text-sm text-black hover:text-gray-700 font-medium">
+            <h2 className="font-semibold text-slate-900">Dagsorden</h2>
+            <button type="button" onClick={addItem} className="text-sm text-slate-700 hover:text-slate-900 font-medium">
               + Legg til sak
             </button>
           </div>
@@ -216,15 +262,17 @@ export default function NewMeetingPage() {
               return (
                 <div
                   key={item.id}
-                  className={`border rounded-md p-4 ${isFixed ? "bg-gray-50 border-gray-200" : "border-gray-200"}`}
+                  className={`border rounded-xl p-4 ${isFixed ? "bg-slate-50 border-slate-200" : "border-black/10 bg-white"}`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-sm font-medium text-gray-400 mt-2 w-6">{index + 1}.</span>
+                    <span className="text-sm font-medium text-slate-400 mt-2 w-10">
+                      {formatAgendaNumber(baseOffset + index + 1, date)}
+                    </span>
                     <div className="flex-1 space-y-2">
                       {isFixed ? (
                         <>
-                          <p className="font-medium text-sm text-gray-700 py-2">{item.title}</p>
-                          {item.description && <p className="text-sm text-gray-500">{item.description}</p>}
+                          <p className="font-medium text-sm text-slate-700 py-2">{item.title}</p>
+                          {item.description && <p className="text-sm text-slate-500">{item.description}</p>}
                         </>
                       ) : (
                         <>
@@ -234,22 +282,22 @@ export default function NewMeetingPage() {
                             placeholder="Tittel på sak"
                             value={item.title}
                             onChange={(e) => updateItem(item.id, "title", e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                            className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20"
                           />
                           <textarea
                             placeholder="Beskrivelse (valgfritt)"
                             value={item.description}
                             onChange={(e) => updateItem(item.id, "description", e.target.value)}
                             rows={2}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
+                            className="w-full px-3 py-2.5 border border-black/10 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/20 resize-none"
                           />
                         </>
                       )}
                     </div>
                     {!isFixed && (
                       <div className="flex flex-col gap-1">
-                        <button type="button" onClick={() => moveItem(index, "up")} disabled={index <= 1} className="text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs p-1" title="Flytt opp">&#9650;</button>
-                        <button type="button" onClick={() => moveItem(index, "down")} disabled={index >= allItems.length - 2} className="text-gray-400 hover:text-gray-600 disabled:opacity-30 text-xs p-1" title="Flytt ned">&#9660;</button>
+                        <button type="button" onClick={() => moveItem(index, "up")} disabled={index <= 1} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 text-xs p-1" title="Flytt opp">&#9650;</button>
+                        <button type="button" onClick={() => moveItem(index, "down")} disabled={index >= allItems.length - 2} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 text-xs p-1" title="Flytt ned">&#9660;</button>
                         <button type="button" onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600 text-xs p-1" title="Fjern">&#10005;</button>
                       </div>
                     )}
@@ -263,10 +311,19 @@ export default function NewMeetingPage() {
         <div className="flex gap-3">
           <button
             type="submit"
+            value="draft"
             disabled={submitting}
-            className="bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors font-medium"
+            className="px-6 py-2.5 rounded-full border border-black/10 hover:bg-white disabled:opacity-50 transition-colors font-medium"
           >
-            {submitting ? "Oppretter..." : "Opprett møte"}
+            {submitting ? "Lagrer..." : "Lagre utkast"}
+          </button>
+          <button
+            type="submit"
+            value="send"
+            disabled={submitting}
+            className="bg-slate-900 text-white px-6 py-2.5 rounded-full hover:bg-black disabled:opacity-50 transition-colors font-medium shadow-sm"
+          >
+            {submitting ? "Sender..." : "Send innkalling"}
           </button>
         </div>
       </form>

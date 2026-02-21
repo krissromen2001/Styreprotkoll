@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { formatAgendaNumber } from "@/lib/utils";
 
 const styles = StyleSheet.create({
   page: { padding: 60, fontFamily: "Helvetica", fontSize: 11, lineHeight: 1.5 },
@@ -81,7 +82,7 @@ export function InvitationPDF({
         {agendaItems.map((item) => (
           <View key={item.sortOrder} style={{ marginBottom: 4 }}>
             <Text style={styles.agendaTitle}>
-              {item.sortOrder}. {item.title}
+              {formatAgendaNumber(item.sortOrder, date)} {item.title}
             </Text>
             {item.description && (
               <Text style={styles.agendaDescription}>{item.description}</Text>

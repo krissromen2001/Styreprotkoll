@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCompaniesForUser } from "@/lib/store";
 import { auth } from "@/lib/auth";
+import { getSelectedCompanyId } from "@/lib/company-selection";
 
 export const dynamic = "force-dynamic";
 
@@ -14,5 +15,8 @@ export async function GET() {
   if (companies.length === 0) {
     return NextResponse.json({ id: null });
   }
-  return NextResponse.json(companies[0]);
+
+  const selectedId = await getSelectedCompanyId();
+  const active = selectedId ? companies.find((c) => c.id === selectedId) : companies[0];
+  return NextResponse.json(active ?? companies[0]);
 }

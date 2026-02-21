@@ -4,6 +4,9 @@ import { BoardMemberActions } from "@/components/board-members/board-member-acti
 import { AddBoardMemberForm } from "@/components/board-members/add-member-form";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { getSelectedCompanyId } from "@/lib/company-selection";
+import { CompanySwitcher } from "@/components/companies/company-switcher";
+import { BoardMemberEmail } from "@/components/board-members/board-member-email";
 
 export const dynamic = "force-dynamic";
 
@@ -38,27 +41,32 @@ export default async function BoardMembersPage() {
           Registrer et selskap først for å administrere styremedlemmer.
         </p>
         <Link
-          href="/companies/new"
+          href="/companies/connect"
           className="inline-block bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
         >
-          Registrer selskap
+          Koble til selskap
         </Link>
       </div>
     );
   }
 
-  const company = companies[0];
+  const selectedId = (await getSelectedCompanyId()) ?? companies[0].id;
+  const company = companies.find((c) => c.id === selectedId) ?? companies[0];
   const members = await getBoardMembers(company.id);
   const currentMember = await getBoardMemberByEmail(company.id, session.user.email);
   const canManage = currentMember?.role === "styreleder";
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Styremedlemmer</h1>
           <p className="text-gray-600 mt-1">{company.name}</p>
         </div>
+        <CompanySwitcher
+          companies={companies.map((c) => ({ id: c.id, name: c.name }))}
+          activeCompanyId={company.id}
+        />
       </div>
 
       {canManage && <AddBoardMemberForm companyId={company.id} />}
@@ -79,7 +87,9 @@ export default async function BoardMembersPage() {
               {members.map((member) => (
                 <tr key={member.id} className="hover:bg-gray-50">
                   <td className="px-5 py-3 text-sm font-medium text-gray-900">{member.name}</td>
-                  <td className="px-5 py-3 text-sm text-gray-500">{member.email || "—"}</td>
+                  <td className="px-5 py-3 text-sm text-gray-500">
+                    <BoardMemberEmail memberId={member.id} email={member.email} canManage={canManage} />
+                  </td>
                   <td className="px-5 py-3 text-sm text-gray-500">{ROLE_LABELS[member.role]}</td>
                   <td className="px-5 py-3">
                     <span

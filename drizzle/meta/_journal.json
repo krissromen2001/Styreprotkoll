@@ -15,6 +15,41 @@
       "when": 1771686883554,
       "tag": "0001_lush_celestials",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771688248602,
+      "tag": "0002_flippant_goliath",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1771696814317,
+      "tag": "0003_flowery_human_fly",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1771701063713,
+      "tag": "0004_tearful_the_hood",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1771706089400,
+      "tag": "0005_new_oracle",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1771708747010,
+      "tag": "0006_aberrant_satana",
+      "breakpoints": true
     }
   ]
 }

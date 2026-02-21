@@ -1,138 +1,100 @@
 import Link from "next/link";
-import { MEETING_STATUS_LABELS, MEETING_STATUS_COLORS, MEETING_TYPE_LABELS } from "@/lib/constants";
-import {
-  getAgendaItems,
-  getSignatures,
-  getCompaniesForUser,
-  getMeetingsForCompanies,
-  getBoardMembers,
-} from "@/lib/store";
-import { formatDate } from "@/lib/utils";
-import { auth } from "@/lib/auth";
 
-export const dynamic = "force-dynamic";
-
-export default async function DashboardPage() {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return (
-      <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-        <div className="text-4xl mb-4">&#128272;</div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Logg inn for å fortsette</h2>
-        <p className="text-gray-500 mb-6">
-          Du må logge inn for å se styremøter og administrere selskap.
-        </p>
-        <Link
-          href="/auth/signin"
-          className="inline-block bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
-        >
-          Logg inn
-        </Link>
-      </div>
-    );
-  }
-
-  const companies = await getCompaniesForUser(session.user.email);
-  const meetings = await getMeetingsForCompanies(companies.map((c) => c.id));
-  const companyMap = new Map(companies.map((c) => [c.id, c]));
-
-  // If no company registered, show onboarding
-  if (companies.length === 0) {
-    return (
-      <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-        <div className="text-4xl mb-4">&#128203;</div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Velkommen til Styreprotokoll</h2>
-        <p className="text-gray-500 mb-6">
-          Koble til selskapet ditt ved å søke i Brønnøysundregistrene.
-        </p>
-        <Link
-          href="/companies/connect"
-          className="inline-block bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
-        >
-          Koble til selskap
-        </Link>
-      </div>
-    );
-  }
-
-  const meetingCards = await Promise.all(
-    meetings.map(async (meeting) => {
-      const items = await getAgendaItems(meeting.id);
-      const sigs = await getSignatures(meeting.id);
-      const company = companyMap.get(meeting.companyId);
-      const members = company ? await getBoardMembers(company.id) : [];
-      const signedCount = sigs.filter((s) => s.signedAt).length;
-
-      return (
-        <Link
-          key={meeting.id}
-          href={`/meetings/${meeting.id}`}
-          className="block bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="font-semibold text-gray-900">
-                  {MEETING_TYPE_LABELS[meeting.type]} {formatDate(meeting.date)}
-                </h2>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    MEETING_STATUS_COLORS[meeting.status]
-                  }`}
-                >
-                  {MEETING_STATUS_LABELS[meeting.status]}
-                </span>
+export default function HomePage() {
+  return (
+    <div className="space-y-16">
+      <section className="grid gap-10 lg:grid-cols-2 items-center">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Styreprotokoll</p>
+          <h1 className="text-4xl sm:text-5xl font-semibold text-slate-900 mt-3 font-display">
+            Styremøter som føles ryddige, rolige og profesjonelle.
+          </h1>
+          <p className="text-slate-600 mt-4 text-lg">
+            Lag innkalling, protokoll og signering på minutter. Alt samlet per selskap
+            med tydelig flyt og sikker lagring.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/auth/signin"
+              className="px-6 py-3 rounded-full border border-black/10 hover:bg-white transition-colors text-sm font-medium"
+            >
+              Logg inn
+            </Link>
+            <Link
+              href="/auth/signup"
+              className="bg-slate-900 text-white px-6 py-3 rounded-full hover:bg-black transition-colors text-sm font-medium shadow-sm"
+            >
+              Opprett bruker
+            </Link>
+          </div>
+          <p className="text-xs text-slate-500 mt-4">
+            For styreledere, daglig ledere og møteansvarlige.
+          </p>
+        </div>
+        <div className="bg-white/80 border border-black/5 rounded-3xl p-6 shadow-sm">
+          <div className="border border-black/5 rounded-2xl p-5 bg-slate-50">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Eksempel</p>
+            <h3 className="mt-2 text-lg font-semibold text-slate-900">
+              Styremøte – 21.02.2026
+            </h3>
+            <p className="text-sm text-slate-600 mt-1">ROMEN HOLDING AS</p>
+            <div className="mt-4 grid gap-3">
+              <div className="bg-white rounded-xl border border-black/5 p-3">
+                <p className="text-sm font-medium text-slate-900">1.26 Åpning av møtet</p>
+                <p className="text-xs text-slate-500 mt-1">Styreleder åpner møtet.</p>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Kl. {meeting.time} — {meeting.room || meeting.address}
-              </p>
-            </div>
-            <div className="text-right text-sm text-gray-500">
-              <p>{items.length} saker</p>
-              {(meeting.status === "pending_signatures" || meeting.status === "signed") && (
-                <p>
-                  {signedCount}/{members.filter((m) => m.active).length} signaturer
-                </p>
-              )}
+              <div className="bg-white rounded-xl border border-black/5 p-3">
+                <p className="text-sm font-medium text-slate-900">2.26 Budsjett</p>
+                <p className="text-xs text-slate-500 mt-1">Gjennomgang av forslag.</p>
+              </div>
+              <div className="bg-white rounded-xl border border-black/5 p-3">
+                <p className="text-sm font-medium text-slate-900">Digital signering</p>
+                <p className="text-xs text-slate-500 mt-1">Sendes til alle styremedlemmer.</p>
+              </div>
             </div>
           </div>
-        </Link>
-      );
-    })
-  );
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Styremøter</h1>
-          <p className="text-gray-600 mt-1">{companies[0].name}</p>
         </div>
-        <Link
-          href="/meetings/new"
-          className="bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
-        >
-          Nytt møte
-        </Link>
-      </div>
+      </section>
 
-      {meetings.length > 0 ? (
-        <div className="space-y-3">{meetingCards}</div>
-      ) : (
-        <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
-          <div className="text-4xl mb-4">&#128203;</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Ingen styremøter ennå</h2>
-          <p className="text-gray-500 mb-6">
-            Kom i gang ved å opprette ditt første styremøte.
-          </p>
+      <section className="grid gap-6 md:grid-cols-3">
+        {[
+          {
+            title: "Automatisert innkalling",
+            body: "Hent data fra Brønnøysund, ferdige maler og riktig agenda-nummerering.",
+          },
+          {
+            title: "Protokoll på sekunder",
+            body: "Skriv beslutninger per sak og send til signering med et klikk.",
+          },
+          {
+            title: "Trygg lagring",
+            body: "Alle dokumenter lagres samlet per selskap med full historikk.",
+          },
+        ].map((item) => (
+          <div key={item.title} className="bg-white/80 border border-black/5 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-slate-900">{item.title}</h3>
+            <p className="text-sm text-slate-600 mt-2">{item.body}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="bg-white/80 border border-black/5 rounded-3xl p-8 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Pris</p>
+            <h2 className="text-3xl font-semibold text-slate-900 mt-2 font-display">Enkel og forutsigbar</h2>
+            <p className="text-slate-600 mt-3">
+              100 NOK per selskap per måned. Ubegrensede møter og dokumenter.
+            </p>
+          </div>
           <Link
-            href="/meetings/new"
-            className="inline-block bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
+            href="/auth/signup"
+            className="bg-slate-900 text-white px-6 py-3 rounded-full hover:bg-black transition-colors text-sm font-medium shadow-sm"
           >
-            Opprett første møte
+            Opprett bruker
           </Link>
         </div>
-      )}
+      </section>
     </div>
   );
 }

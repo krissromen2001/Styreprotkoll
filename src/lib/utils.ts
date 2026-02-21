@@ -22,3 +22,14 @@ export function formatDateISO(dateStr: string): string {
 export function formatDateTime(dateStr: string, timeStr: string): string {
   return `${formatDate(dateStr)} kl ${timeStr}`;
 }
+
+export function getYearSuffix(dateStr: string): string {
+  if (!dateStr) return String(new Date().getFullYear()).slice(-2);
+  const [year] = dateStr.split("-");
+  if (!year || year.length < 4) return String(new Date().getFullYear()).slice(-2);
+  return year.slice(-2);
+}
+
+export function formatAgendaNumber(sortOrder: number, dateStr: string): string {
+  return `${sortOrder}.${getYearSuffix(dateStr)}`;
+}

@@ -1,0 +1,2 @@
+CREATE TYPE "public"."meeting_type" AS ENUM('board_meeting', 'general_assembly', 'extraordinary_general_assembly');--> statement-breakpoint
+ALTER TABLE "meetings" ADD COLUMN "type" "meeting_type" DEFAULT 'board_meeting' NOT NULL;

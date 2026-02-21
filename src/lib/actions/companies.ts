@@ -8,8 +8,10 @@ import {
   getCompanyByOrg,
   updateBoardMember,
   getBoardMemberByNameRole,
+  getCompaniesForUser,
 } from "@/lib/store";
 import { lookupCompany, lookupBoardMembers } from "@/lib/brreg";
+import { setSelectedCompanyId } from "@/lib/company-selection";
 
 export async function registerCompany(formData: FormData) {
   const name = formData.get("name") as string;
@@ -56,7 +58,8 @@ export async function registerCompany(formData: FormData) {
     }
   }
 
-  redirect(`/?companyId=${company.id}`);
+  await setSelectedCompanyId(company.id);
+  redirect(`/dashboard?companyId=${company.id}`);
 }
 
 export async function connectCompanyForUser(formData: FormData) {
@@ -126,5 +129,30 @@ export async function connectCompanyForUser(formData: FormData) {
     email: session.user.email,
   });
 
-  redirect("/");
+  await setSelectedCompanyId(company.id);
+  redirect("/dashboard");
+}
+
+export async function setActiveCompany(formData: FormData) {
+  const companyId = formData.get("companyId") as string;
+  if (!companyId) {
+    console.error("Ugyldig selskap");
+    return;
+  }
+
+  const session = await auth();
+  if (!session?.user?.email) {
+    console.error("Du må være innlogget");
+    return;
+  }
+
+  const companies = await getCompaniesForUser(session.user.email);
+  const hasAccess = companies.some((c) => c.id === companyId);
+  if (!hasAccess) {
+    console.error("Ingen tilgang");
+    return;
+  }
+
+  await setSelectedCompanyId(companyId);
+  redirect("/dashboard");
 }

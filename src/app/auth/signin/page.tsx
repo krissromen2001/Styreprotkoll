@@ -16,7 +16,7 @@ function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await signIn("credentials", { email, password, callbackUrl: "/" });
+    await signIn("credentials", { email, password, callbackUrl: "/dashboard" });
   };
 
   return (
@@ -28,7 +28,9 @@ function SignInForm() {
         </p>
         {error && (
           <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm mb-4">
-            Ugyldig e-post eller passord.
+            {error === "EmailNotVerified"
+              ? "E-posten er ikke bekreftet enda. Sjekk innboksen din."
+              : "Ugyldig e-post eller passord."}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
