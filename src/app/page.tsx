@@ -1,25 +1,112 @@
 import Link from "next/link";
 import { MEETING_STATUS_LABELS, MEETING_STATUS_COLORS } from "@/lib/constants";
+import {
+  getAgendaItems,
+  getSignatures,
+  getCompaniesForUser,
+  getMeetingsForCompanies,
+  getBoardMembers,
+} from "@/lib/store";
+import { formatDate } from "@/lib/utils";
+import { auth } from "@/lib/auth";
 
-// Empty until DB is connected — meetings will be fetched from database
-const meetings: {
-  id: string;
-  date: string;
-  time: string;
-  status: string;
-  room: string;
-  agendaCount: number;
-  signatureCount: number;
-  totalMembers: number;
-}[] = [];
+export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const session = await auth();
+  if (!session?.user?.email) {
+    return (
+      <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+        <div className="text-4xl mb-4">&#128272;</div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Logg inn for å fortsette</h2>
+        <p className="text-gray-500 mb-6">
+          Du må logge inn for å se styremøter og administrere selskap.
+        </p>
+        <Link
+          href="/auth/signin"
+          className="inline-block bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
+        >
+          Logg inn
+        </Link>
+      </div>
+    );
+  }
+
+  const companies = await getCompaniesForUser(session.user.email);
+  const meetings = await getMeetingsForCompanies(companies.map((c) => c.id));
+  const companyMap = new Map(companies.map((c) => [c.id, c]));
+
+  // If no company registered, show onboarding
+  if (companies.length === 0) {
+    return (
+      <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
+        <div className="text-4xl mb-4">&#128203;</div>
+        <h2 className="text-lg font-semibold text-gray-900 mb-2">Velkommen til Styreprotokoll</h2>
+        <p className="text-gray-500 mb-6">
+          Start med å registrere selskapet ditt. Vi henter informasjon fra Brønnøysundregistrene automatisk.
+        </p>
+        <Link
+          href="/companies/new"
+          className="inline-block bg-black text-white px-6 py-2.5 rounded-md hover:bg-gray-800 transition-colors text-sm font-medium"
+        >
+          Registrer selskap
+        </Link>
+      </div>
+    );
+  }
+
+  const meetingCards = await Promise.all(
+    meetings.map(async (meeting) => {
+      const items = await getAgendaItems(meeting.id);
+      const sigs = await getSignatures(meeting.id);
+      const company = companyMap.get(meeting.companyId);
+      const members = company ? await getBoardMembers(company.id) : [];
+      const signedCount = sigs.filter((s) => s.signedAt).length;
+
+      return (
+        <Link
+          key={meeting.id}
+          href={`/meetings/${meeting.id}`}
+          className="block bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="font-semibold text-gray-900">
+                  Styremøte {formatDate(meeting.date)}
+                </h2>
+                <span
+                  className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    MEETING_STATUS_COLORS[meeting.status]
+                  }`}
+                >
+                  {MEETING_STATUS_LABELS[meeting.status]}
+                </span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Kl. {meeting.time} — {meeting.room || meeting.address}
+              </p>
+            </div>
+            <div className="text-right text-sm text-gray-500">
+              <p>{items.length} saker</p>
+              {(meeting.status === "pending_signatures" || meeting.status === "signed") && (
+                <p>
+                  {signedCount}/{members.filter((m) => m.active).length} signaturer
+                </p>
+              )}
+            </div>
+          </div>
+        </Link>
+      );
+    })
+  );
+
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Styremøter</h1>
-          <p className="text-gray-600 mt-1">Oversikt over alle styremøter</p>
+          <p className="text-gray-600 mt-1">{companies[0].name}</p>
         </div>
         <Link
           href="/meetings/new"
@@ -30,43 +117,7 @@ export default function DashboardPage() {
       </div>
 
       {meetings.length > 0 ? (
-        <div className="space-y-3">
-          {meetings.map((meeting) => (
-            <Link
-              key={meeting.id}
-              href={`/meetings/${meeting.id}`}
-              className="block bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h2 className="font-semibold text-gray-900">
-                      Styremøte {meeting.date}
-                    </h2>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        MEETING_STATUS_COLORS[meeting.status]
-                      }`}
-                    >
-                      {MEETING_STATUS_LABELS[meeting.status]}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Kl. {meeting.time} — {meeting.room}
-                  </p>
-                </div>
-                <div className="text-right text-sm text-gray-500">
-                  <p>{meeting.agendaCount} saker</p>
-                  {(meeting.status === "pending_signatures" || meeting.status === "signed") && (
-                    <p>
-                      {meeting.signatureCount}/{meeting.totalMembers} signaturer
-                    </p>
-                  )}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <div className="space-y-3">{meetingCards}</div>
       ) : (
         <div className="text-center py-16 bg-white rounded-lg border border-gray-200">
           <div className="text-4xl mb-4">&#128203;</div>

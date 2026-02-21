@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { registerCompany } from "@/lib/actions/companies";
 
 interface BrregResult {
   name: string;
@@ -14,6 +15,7 @@ interface BrregResult {
 export default function NewCompanyPage() {
   const [orgNumber, setOrgNumber] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<BrregResult | null>(null);
   const [emails, setEmails] = useState<Record<number, string>>({});
@@ -36,8 +38,30 @@ export default function NewCompanyPage() {
   };
 
   const handleRegister = async () => {
-    // Will connect to server action later
-    alert("Registrering kommer snart — databasen er ikke koblet til ennå.");
+    if (!result) return;
+    setSubmitting(true);
+
+    const formData = new FormData();
+    formData.set("name", result.name);
+    formData.set("orgNumber", result.orgNumber);
+    formData.set("address", result.address);
+    formData.set("postalCode", result.postalCode);
+    formData.set("city", result.city);
+
+    const members = result.boardMembers.map((m, idx) => ({
+      name: m.name,
+      email: emails[idx] || "",
+      role: m.role,
+    }));
+    formData.set("members", JSON.stringify(members));
+
+    const result = await registerCompany(formData);
+    if (result?.error) {
+      setError(result.error);
+      setSubmitting(false);
+      return;
+    }
+    setSubmitting(false);
   };
 
   return (
@@ -119,9 +143,10 @@ export default function NewCompanyPage() {
 
           <button
             onClick={handleRegister}
-            className="w-full bg-black text-white py-2.5 px-4 rounded-md hover:bg-gray-800 transition-colors font-medium"
+            disabled={submitting}
+            className="w-full bg-black text-white py-2.5 px-4 rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors font-medium"
           >
-            Registrer selskap
+            {submitting ? "Registrerer..." : "Registrer selskap"}
           </button>
         </div>
       )}

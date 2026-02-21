@@ -34,3 +34,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Database Setup (Vercel Postgres + Drizzle)
+
+1. Create a `.env.local` based on `.env.example` and set `DATABASE_URL` (or `POSTGRES_URL`), `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`.
+2. Generate a migration from the schema:
+```bash
+npm run db:generate
+```
+3. Apply migrations to your database:
+```bash
+DATABASE_URL=postgresql://... npm run db:migrate
+```
+
+Useful commands:
+```bash
+npm run db:push
+npm run db:studio
+```
+
+The schema is defined in `src/lib/db/schema.ts` and migrations are output to `drizzle/`.

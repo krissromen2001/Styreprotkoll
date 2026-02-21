@@ -10,6 +10,7 @@ function SignInForm() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const verify = searchParams.get("verify");
+  const error = searchParams.get("error");
 
   if (verify) {
     return (
@@ -38,6 +39,11 @@ function SignInForm() {
         <p className="text-gray-600 mb-6">
           Skriv inn e-postadressen din for å motta en innloggingslenke.
         </p>
+        {error && (
+          <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm mb-4">
+            Du har ikke tilgang til å logge inn med denne e-posten.
+          </div>
+        )}
         <form onSubmit={handleSubmit}>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
             E-postadresse

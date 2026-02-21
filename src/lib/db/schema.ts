@@ -97,6 +97,21 @@ export const signatures = pgTable("signatures", {
   userAgent: text("user_agent"),
 });
 
+// One-time signing links for email-based signing
+export const signingTokens = pgTable("signing_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  meetingId: uuid("meeting_id")
+    .notNull()
+    .references(() => meetings.id, { onDelete: "cascade" }),
+  boardMemberId: uuid("board_member_id")
+    .notNull()
+    .references(() => boardMembers.id, { onDelete: "cascade" }),
+  token: varchar("token", { length: 255 }).notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  usedAt: timestamp("used_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Audit log — tracks events
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").defaultRandom().primaryKey(),

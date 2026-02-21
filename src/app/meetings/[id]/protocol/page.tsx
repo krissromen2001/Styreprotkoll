@@ -3,9 +3,9 @@ import Link from "next/link";
 export default async function ProtocolPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = await params;
+  const { id } = params;
 
   // TODO: Fetch meeting + agenda items from DB
   // Pre-fill agenda items from the invitation
