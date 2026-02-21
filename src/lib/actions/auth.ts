@@ -89,3 +89,13 @@ export async function verifyEmailToken(token: string) {
   await markEmailVerificationTokenUsed(record.id);
   return { success: true };
 }
+
+export async function checkEmailVerification(email: string) {
+  const normalized = email?.trim().toLowerCase();
+  if (!normalized) return { exists: false, verified: false };
+
+  const rows = await db.select().from(users).where(eq(users.email, normalized));
+  const user = rows[0];
+  if (!user) return { exists: false, verified: false };
+  return { exists: true, verified: !!user.emailVerified };
+}

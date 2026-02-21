@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
+import { checkEmailVerification } from "@/lib/actions/auth";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -16,6 +17,11 @@ function SignInForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    const status = await checkEmailVerification(email);
+    if (status.exists && !status.verified) {
+      setLoading(false);
+      return window.location.assign("/auth/signin?error=EmailNotVerified");
+    }
     await signIn("credentials", { email, password, callbackUrl: "/dashboard" });
   };
 
