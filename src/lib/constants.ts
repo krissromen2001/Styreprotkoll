@@ -46,12 +46,20 @@ export const DEFAULT_OPTIONAL_BOARD_AGENDA_ITEMS = [
 ];
 
 export const DEFAULT_GENERAL_ASSEMBLY_ITEMS = [
-  { title: "Valg av møteleder", description: "" },
-  { title: "Valg av referent", description: "" },
-  { title: "Godkjenning av årsregnskap og årsberetning", description: "" },
-  { title: "Gjennomgang av budsjett", description: "" },
-  { title: "Valg av styremedlemmer", description: "" },
-  { title: "Valg av styreleder", description: "" },
+  {
+    title: "Åpning av møte ved styreleder",
+    description: "",
+  },
+  {
+    title: "Valg av møteleder og protokollunderskrivere",
+    description: "Minst en person i tillegg til møteleder.",
+  },
+  { title: "Godkjenning av innkalling og dagsorden", description: "" },
+  {
+    title: "Godkjenning av årsregnskap, årsberetning og revisjonsberetning, herunder utdeling av utbytte",
+    description: "",
+  },
+  { title: "Styrevalg", description: "Behandling av valg/endring av styre." },
 ];
 
 export const DEFAULT_EXTRAORDINARY_ASSEMBLY_ITEMS = [

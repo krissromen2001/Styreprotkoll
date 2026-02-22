@@ -35,6 +35,10 @@ export default function SignUpPage() {
     });
   };
 
+  const handleSignicatSignUp = () => {
+    window.location.assign("/auth/signicat/start");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -64,6 +68,15 @@ export default function SignUpPage() {
         <p className="text-gray-600 mb-6">
           Lag en brukerkonto for å fortsette.
         </p>
+        <>
+          <button
+            type="button"
+            onClick={handleSignicatSignUp}
+            className="w-full border border-gray-300 py-2 px-4 rounded-md hover:bg-gray-50 transition-colors mb-3"
+          >
+            Fortsett med BankID
+          </button>
+        </>
         {googleAvailable && (
           <>
             <button

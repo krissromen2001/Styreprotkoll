@@ -8,6 +8,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase-admin";
+import { SIGNICAT_ACCESS_COOKIE, fetchSignicatUserInfo } from "@/lib/signicat-oidc";
 
 const googleProviderEnabled = Boolean(
   process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
@@ -107,6 +108,60 @@ type AppSession = (Session & {
 }) | null;
 
 const SUPABASE_ACCESS_COOKIE = "sp_access_token";
+const SIGNICAT_SESSION_DURATION_MS = 60 * 60 * 1000;
+
+async function getSignicatCookieSession(): Promise<AppSession> {
+  const cookieStore = await cookies();
+  const accessToken = cookieStore.get(SIGNICAT_ACCESS_COOKIE)?.value;
+  if (!accessToken) return null;
+
+  let profile: Awaited<ReturnType<typeof fetchSignicatUserInfo>>;
+  try {
+    profile = await fetchSignicatUserInfo(accessToken);
+  } catch {
+    return null;
+  }
+
+  const email = profile.email?.toLowerCase().trim();
+  if (!email) return null;
+
+  const existing = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  let localUser = existing[0];
+
+  if (!localUser) {
+    const created = await db
+      .insert(users)
+      .values({
+        email,
+        name:
+          profile.name?.trim() ||
+          [profile.given_name, profile.family_name].filter(Boolean).join(" ").trim() ||
+          null,
+        passwordHash: null,
+        emailVerified: new Date(),
+      })
+      .returning();
+    localUser = created[0];
+  } else if (!localUser.emailVerified) {
+    const updated = await db
+      .update(users)
+      .set({ emailVerified: new Date() })
+      .where(eq(users.id, localUser.id))
+      .returning();
+    localUser = updated[0] ?? localUser;
+  }
+
+  if (!localUser) return null;
+
+  return {
+    user: {
+      id: localUser.id,
+      email: localUser.email,
+      name: localUser.name ?? profile.name ?? null,
+    },
+    expires: new Date(Date.now() + SIGNICAT_SESSION_DURATION_MS).toISOString(),
+  } as AppSession;
+}
 
 async function getSupabaseCookieSession(): Promise<AppSession> {
   const cookieStore = await cookies();
@@ -143,6 +198,11 @@ async function getSupabaseCookieSession(): Promise<AppSession> {
 }
 
 export async function auth(): Promise<AppSession> {
+  const signicatSession = await getSignicatCookieSession();
+  if (signicatSession?.user?.id) {
+    return signicatSession;
+  }
+
   const supabaseSession = await getSupabaseCookieSession();
   if (supabaseSession?.user?.id) {
     return supabaseSession;

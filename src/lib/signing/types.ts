@@ -1,4 +1,4 @@
-export type SigningProviderKey = "signicat";
+export type SigningProviderKey = "signicat" | "dokobit";
 
 export type NormalizedSignatureStatus =
   | "created"

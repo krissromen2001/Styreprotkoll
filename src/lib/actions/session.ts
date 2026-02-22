@@ -4,6 +4,10 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 const COOKIES_TO_CLEAR = [
+  "sg_access_token",
+  "sg_refresh_token",
+  "sg_oidc_state",
+  "sg_oidc_pkce",
   "sp_access_token",
   "sp_refresh_token",
   "active_company_id",

@@ -2,9 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { EventueltChoiceField } from "@/components/meetings/eventuelt-choice-field";
+import { ProtocolDecisionAiField } from "@/components/meetings/protocol-decision-ai-field";
 import { getAgendaItems, getBoardMemberByEmail, getBoardMembers, getCompany, getMeeting, getMeetingAttendees } from "@/lib/store";
 import { saveProtocolFromForm } from "@/lib/actions/meetings";
-import { formatAgendaNumber, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { DEFAULT_LAST_AGENDA_ITEM, MEETING_TYPE_LABELS } from "@/lib/constants";
 
 const APPROVAL_AGENDA_TITLE = "godkjennelse av innkalling og dagsorden";
@@ -52,6 +53,7 @@ export default async function ProtocolPage({
   const attendanceMap = new Map(attendance.map((a) => [a.boardMemberId, a.present]));
 
   const meetingId = meeting.id;
+  const aiAvailable = Boolean(process.env.OPENAI_API_KEY);
 
   async function handleSave(formData: FormData) {
     "use server";
@@ -90,10 +92,10 @@ export default async function ProtocolPage({
             ))}
           </div>
         </div>
-        {items.map((item) => (
+        {items.map((item, index) => (
           <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-5">
             <h2 className="font-semibold text-gray-900 mb-2">
-              {formatAgendaNumber(item.sortOrder, meeting.date)} {item.title}
+              {index + 1}. {item.title}
             </h2>
             {item.title.trim().toLowerCase() === APPROVAL_AGENDA_TITLE ? (
               <div className="space-y-3">
@@ -125,12 +127,13 @@ export default async function ProtocolPage({
                 </p>
               </div>
             ) : (
-              <textarea
-                name={`decision-${item.id}`}
-                defaultValue={item.decision || ""}
-                rows={4}
-                placeholder="Skriv beslutning/konklusjon for saken"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent resize-none"
+              <ProtocolDecisionAiField
+                meetingId={meeting.id}
+                agendaItemId={item.id}
+                agendaTitle={item.title}
+                decisionName={`decision-${item.id}`}
+                defaultDecision={item.decision || ""}
+                aiAvailable={aiAvailable}
               />
             )}
           </div>

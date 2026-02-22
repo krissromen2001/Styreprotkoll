@@ -9,7 +9,6 @@ import {
   DEFAULT_EXTRAORDINARY_ASSEMBLY_ITEMS,
   MEETING_TYPE_LABELS,
 } from "@/lib/constants";
-import { formatAgendaNumber } from "@/lib/utils";
 import { createNewMeeting } from "@/lib/actions/meetings";
 
 interface AgendaItem {
@@ -27,13 +26,22 @@ function isCoAddress(address: string) {
   return /^\s*c\/?o\b/i.test(address.trim());
 }
 
+function isFixedAgendaIndex(
+  meetingType: "board_meeting" | "general_assembly" | "extraordinary_general_assembly",
+  index: number
+) {
+  if (meetingType === "general_assembly") {
+    return index === 0 || index === 1 || index === 2;
+  }
+  return index === 0;
+}
+
 export default function NewMeetingPage() {
   const router = useRouter();
   const [meetingType, setMeetingType] = useState<
     "board_meeting" | "general_assembly" | "extraordinary_general_assembly"
   >("board_meeting");
   const [companyId, setCompanyId] = useState<string | null>(null);
-  const [baseOffset, setBaseOffset] = useState(0);
   const [meetingMode, setMeetingMode] = useState<"physical" | "digital">("physical");
   const [prefilledAddress, setPrefilledAddress] = useState(false);
   const [address, setAddress] = useState("");
@@ -51,15 +59,17 @@ export default function NewMeetingPage() {
   const buildDefaultAgenda = (
     type: "board_meeting" | "general_assembly" | "extraordinary_general_assembly"
   ) => {
+    if (type === "general_assembly") {
+      return DEFAULT_GENERAL_ASSEMBLY_ITEMS.map((item) => ({
+        id: genId(),
+        title: item.title,
+        description: item.description,
+      }));
+    }
+
     const baseItems = [
       { id: genId(), title: DEFAULT_FIRST_AGENDA_ITEM.title, description: DEFAULT_FIRST_AGENDA_ITEM.description },
     ];
-
-    if (type === "general_assembly") {
-      DEFAULT_GENERAL_ASSEMBLY_ITEMS.forEach((item) => {
-        baseItems.push({ id: genId(), title: item.title, description: item.description });
-      });
-    }
 
     if (type === "extraordinary_general_assembly") {
       DEFAULT_EXTRAORDINARY_ASSEMBLY_ITEMS.forEach((item) => {
@@ -98,6 +108,9 @@ export default function NewMeetingPage() {
     const newItems = [...agendaItems];
     const swapIndex = direction === "up" ? index - 1 : index + 1;
     if (swapIndex < 0 || swapIndex >= newItems.length) return;
+    if (isFixedAgendaIndex(meetingType, index) || isFixedAgendaIndex(meetingType, swapIndex)) {
+      return;
+    }
     [newItems[index], newItems[swapIndex]] = [newItems[swapIndex], newItems[index]];
     setAgendaItems(newItems);
   };
@@ -158,23 +171,6 @@ export default function NewMeetingPage() {
     };
     loadCompany();
   }, [prefilledAddress]);
-
-  useEffect(() => {
-    const loadBase = async () => {
-      if (!companyId || !date) {
-        setBaseOffset(0);
-        return;
-      }
-      const res = await fetch("/api/agenda-sequence", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId, date }),
-      });
-      const data = await res.json();
-      setBaseOffset(typeof data.base === "number" ? data.base : 0);
-    };
-    loadBase();
-  }, [companyId, date]);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -315,8 +311,7 @@ export default function NewMeetingPage() {
 
           <div className="space-y-3">
             {agendaItems.map((item, index) => {
-              const isFirst = index === 0;
-              const isFixed = isFirst;
+              const isFixed = isFixedAgendaIndex(meetingType, index);
 
               return (
                 <div
@@ -325,7 +320,7 @@ export default function NewMeetingPage() {
                 >
                   <div className="flex items-start gap-3">
                     <span className="text-sm font-medium text-slate-400 mt-2 w-10">
-                      {formatAgendaNumber(baseOffset + index + 1, date)}
+                      {index + 1}.
                     </span>
                     <div className="flex-1 space-y-2">
                       {isFixed ? (
@@ -355,8 +350,24 @@ export default function NewMeetingPage() {
                     </div>
                     {!isFixed && (
                       <div className="flex flex-col gap-1">
-                        <button type="button" onClick={() => moveItem(index, "up")} disabled={index <= 1} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 text-xs p-1" title="Flytt opp">&#9650;</button>
-                        <button type="button" onClick={() => moveItem(index, "down")} disabled={index >= agendaItems.length - 1} className="text-slate-400 hover:text-slate-600 disabled:opacity-30 text-xs p-1" title="Flytt ned">&#9660;</button>
+                        <button
+                          type="button"
+                          onClick={() => moveItem(index, "up")}
+                          disabled={index <= 1 || isFixedAgendaIndex(meetingType, index - 1)}
+                          className="text-slate-400 hover:text-slate-600 disabled:opacity-30 text-xs p-1"
+                          title="Flytt opp"
+                        >
+                          &#9650;
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveItem(index, "down")}
+                          disabled={index >= agendaItems.length - 1 || isFixedAgendaIndex(meetingType, index + 1)}
+                          className="text-slate-400 hover:text-slate-600 disabled:opacity-30 text-xs p-1"
+                          title="Flytt ned"
+                        >
+                          &#9660;
+                        </button>
                         <button type="button" onClick={() => removeItem(item.id)} className="text-red-400 hover:text-red-600 text-xs p-1" title="Fjern">&#10005;</button>
                       </div>
                     )}

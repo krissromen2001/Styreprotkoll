@@ -15,6 +15,7 @@ function SignInForm() {
   const [googleAvailable, setGoogleAvailable] = useState(false);
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+  const errorMessage = searchParams.get("message");
 
   useEffect(() => {
     setGoogleAvailable(
@@ -37,6 +38,10 @@ function SignInForm() {
     });
   };
 
+  const handleSignicatSignIn = () => {
+    window.location.assign("/auth/signicat/start");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -55,6 +60,15 @@ function SignInForm() {
         <p className="text-gray-600 mb-6">
           Logg inn med e-post og passord.
         </p>
+        <>
+          <button
+            type="button"
+            onClick={handleSignicatSignIn}
+            className="w-full border border-gray-300 py-2 px-4 rounded-md hover:bg-gray-50 transition-colors mb-3"
+          >
+            Fortsett med BankID
+          </button>
+        </>
         {googleAvailable && (
           <>
             <button
@@ -75,7 +89,9 @@ function SignInForm() {
           <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm mb-4">
             {error === "EmailNotVerified"
               ? "E-posten er ikke bekreftet enda. Sjekk innboksen din."
-              : "Ugyldig e-post eller passord."}
+              : error.startsWith("Signicat")
+                ? errorMessage || "Kunne ikke logge inn med BankID."
+                : "Ugyldig e-post eller passord."}
           </div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">

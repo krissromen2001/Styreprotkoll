@@ -11,7 +11,7 @@ import {
   getBoardMemberByEmail,
 } from "@/lib/store";
 import { getSignedProtocolUrl, getSignedStorageUrl } from "@/lib/protocol-storage";
-import { formatAgendaNumber, formatDate } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { MeetingActions } from "@/components/meetings/meeting-actions";
 import { MeetingDeleteButton } from "@/components/meetings/meeting-delete-button";
 import { auth } from "@/lib/auth";
@@ -145,14 +145,41 @@ export default async function MeetingDetailPage({
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+        <h2 className="font-semibold text-gray-900 mb-3">Dokumenter (PDF)</h2>
+        <div className="flex flex-wrap gap-3">
+          <Link
+            href={`/api/meetings/${meeting.id}/invitation-pdf`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium"
+          >
+            Åpne innkalling (PDF)
+          </Link>
+          {hasProtocol && (
+            <Link
+              href={`/api/meetings/${meeting.id}/protocol-pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-md border border-gray-300 hover:bg-gray-50 transition-colors text-sm font-medium"
+            >
+              Åpne protokoll (PDF)
+            </Link>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mt-3">
+          PDFene genereres direkte fra møtedata og protokollinnhold i appen.
+        </p>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
         <h2 className="font-semibold text-gray-900 mb-4">
           {hasProtocol ? "Protokoll" : "Dagsorden"}
         </h2>
         <div className="space-y-4">
-          {items.map((item) => (
+          {items.map((item, index) => (
             <div key={item.id} className="border-b border-gray-100 pb-4 last:border-0 last:pb-0">
               <h3 className="font-medium text-sm">
-                {formatAgendaNumber(item.sortOrder, meeting.date)} {item.title}
+                {index + 1}. {item.title}
               </h3>
               {hasProtocol && item.decision ? (
                 <p className="text-sm text-gray-600 mt-1">{item.decision}</p>
