@@ -62,7 +62,7 @@ export interface Meeting {
   id: string;
   companyId: string;
   title: string | null;
-  meetingMode?: "physical" | "digital" | null;
+  meetingMode?: string | null;
   meetingLink?: string | null;
   address: string | null;
   room: string | null;
