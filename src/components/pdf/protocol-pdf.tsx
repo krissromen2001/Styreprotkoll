@@ -29,6 +29,11 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 40, left: 60, right: 60, flexDirection: "row", justifyContent: "space-between", fontSize: 9, color: "#666" },
 });
 
+function formatOrgNumber(orgNumber: string) {
+  const digits = (orgNumber || "").replace(/\s+/g, "");
+  return digits.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+}
+
 interface AgendaItem {
   sortOrder: number;
   title: string;
@@ -52,6 +57,8 @@ interface ProtocolPDFProps {
   orgNumber: string;
   address: string;
   room: string;
+  meetingMode?: "physical" | "digital";
+  meetingLink?: string;
   date: string;
   time: string;
   meetingType?: "board_meeting" | "general_assembly" | "extraordinary_general_assembly";
@@ -66,6 +73,7 @@ export function ProtocolPDF({
   orgNumber,
   address,
   room,
+  meetingMode = "physical",
   date,
   time,
   meetingType = "board_meeting",
@@ -74,6 +82,7 @@ export function ProtocolPDF({
   signatures,
   location = "Trondheim, Norge",
 }: ProtocolPDFProps) {
+  const formattedOrgNumber = formatOrgNumber(orgNumber);
   const formatSignedDate = (value?: string) => {
     if (!value) return "";
     const parsed = new Date(value);
@@ -92,12 +101,21 @@ export function ProtocolPDF({
     <Document>
       <Page size="A4" style={styles.page}>
         <Text style={styles.title}>
-          Protokoll til {meetingTitle.toLowerCase()} i {companyName} (org nr {orgNumber})
+          Protokoll til {meetingTitle.toLowerCase()} i {companyName} (org.nr. {formattedOrgNumber})
         </Text>
 
         <View style={styles.section}>
-          <Text style={styles.meta}>Adresse: {address}</Text>
-          <Text style={styles.meta}>Rom: {room}</Text>
+          <Text style={styles.meta}>
+            Møteform: {meetingMode === "digital" ? "Digitalt møte" : "Fysisk møte"}
+          </Text>
+          {meetingMode === "digital" ? (
+            null
+          ) : (
+            <>
+              <Text style={styles.meta}>Adresse: {address}</Text>
+              {room?.trim() ? <Text style={styles.meta}>Rom: {room}</Text> : null}
+            </>
+          )}
           <Text style={styles.meta}>Tidspunkt: {date} kl {time}</Text>
         </View>
 
@@ -161,7 +179,7 @@ export function ProtocolPDF({
         <View style={styles.footer}>
           <Text>{location}</Text>
           <Text>{date}</Text>
-          <Text>org nr {orgNumber.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3")}</Text>
+          <Text>org.nr. {formattedOrgNumber}</Text>
         </View>
       </Page>
     </Document>

@@ -4,14 +4,21 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { CompanySwitcherMenu } from "@/components/layout/company-switcher-menu";
+import { UserMenu } from "@/components/layout/user-menu";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/meetings/new", label: "Nytt møte" },
 ];
 
+const marketingNavItems = [
+  { href: "/", label: "Forside" },
+  { href: "/om-oss", label: "Om oss" },
+];
+
 export function Header() {
   const pathname = usePathname();
+  const isMarketingPage = pathname === "/" || pathname === "/om-oss";
 
   // Hide header on auth pages
   if (pathname?.startsWith("/auth")) return null;
@@ -24,19 +31,29 @@ export function Header() {
             Styreprotokoll
           </Link>
           <div className="flex items-center gap-3">
-            {pathname === "/" ? (
+            {isMarketingPage ? (
               <div className="flex items-center gap-2">
+                <nav className="hidden sm:flex items-center gap-1 mr-1">
+                  {marketingNavItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "px-4 py-2 rounded-full text-sm font-medium transition-colors",
+                        pathname === item.href
+                          ? "bg-white text-slate-900 border border-black/5 shadow-sm"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-white"
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </nav>
                 <Link
                   href="/auth/signin"
-                  className="px-5 py-2 rounded-full border border-black/10 hover:bg-white transition-colors text-sm font-medium"
-                >
-                  Logg inn
-                </Link>
-                <Link
-                  href="/auth/signup"
                   className="bg-slate-900 text-white px-5 py-2 rounded-full hover:bg-black transition-colors text-sm font-medium shadow-sm"
                 >
-                  Opprett bruker
+                  Logg inn
                 </Link>
               </div>
             ) : (
@@ -60,6 +77,7 @@ export function Header() {
                 <div className="hidden sm:block">
                   <CompanySwitcherMenu />
                 </div>
+                <UserMenu />
               </>
             )}
           </div>

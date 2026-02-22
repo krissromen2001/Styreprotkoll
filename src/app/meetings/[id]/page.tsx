@@ -5,15 +5,20 @@ import {
   getMeeting,
   getAgendaItems,
   getCompany,
+  getMeetingAttachments,
   getSignatures,
   getBoardMembers,
   getBoardMemberByEmail,
 } from "@/lib/store";
-import { getSignedProtocolUrl } from "@/lib/protocol-storage";
+import { getSignedProtocolUrl, getSignedStorageUrl } from "@/lib/protocol-storage";
 import { formatAgendaNumber, formatDate } from "@/lib/utils";
 import { MeetingActions } from "@/components/meetings/meeting-actions";
+import { MeetingDeleteButton } from "@/components/meetings/meeting-delete-button";
 import { auth } from "@/lib/auth";
-import { regenerateSignedProtocol } from "@/lib/actions/meetings";
+import {
+  regenerateSignedProtocol,
+  removeInvitationAttachment,
+} from "@/lib/actions/meetings";
 
 export const dynamic = "force-dynamic";
 
@@ -54,14 +59,23 @@ export default async function MeetingDetailPage({
   const company = await getCompany(meeting.companyId);
   const items = await getAgendaItems(meeting.id);
   const sigs = await getSignatures(meeting.id);
-  const protocolUrl = meeting.protocolStoragePath
-    ? await getSignedProtocolUrl(meeting.protocolStoragePath)
+  const meetingAttachments = await getMeetingAttachments(meeting.id);
+  const protocolPath = meeting.signedProtocolStoragePath || meeting.protocolStoragePath;
+  const protocolUrl = protocolPath
+    ? await getSignedProtocolUrl(protocolPath)
     : null;
   const members = company ? await getBoardMembers(company.id) : [];
+  const attachmentLinks = await Promise.all(
+    meetingAttachments.map(async (attachment) => ({
+      ...attachment,
+      signedUrl: await getSignedStorageUrl(attachment.storagePath),
+    }))
+  );
   const canManage = member.role === "styreleder";
 
   const hasProtocol = ["protocol_draft", "pending_signatures", "signed"].includes(meeting.status);
   const hasSignatures = ["pending_signatures", "signed"].includes(meeting.status);
+  const canEditAttachments = canManage && (meeting.status === "draft" || meeting.status === "invitation_sent");
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -85,15 +99,44 @@ export default async function MeetingDetailPage({
             <p className="text-gray-500">{company.name} (org.nr. {company.orgNumber})</p>
           )}
         </div>
-        <MeetingActions meetingId={meeting.id} status={meeting.status} canManage={canManage} />
+        <MeetingActions
+          meetingId={meeting.id}
+          status={meeting.status}
+          canManage={canManage}
+          showInAppSignLink={meeting.signingMethod !== "provider_bankid"}
+        />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-          <dt className="text-gray-500">Adresse</dt>
-          <dd>{meeting.address}</dd>
-          <dt className="text-gray-500">Rom</dt>
-          <dd>{meeting.room || "—"}</dd>
+          <dt className="text-gray-500">Møteform</dt>
+          <dd>{meeting.meetingMode === "digital" ? "Digitalt møte" : "Fysisk møte"}</dd>
+          {meeting.meetingMode === "digital" ? (
+            <>
+              <dt className="text-gray-500">Møtelenke</dt>
+              <dd>
+                {meeting.meetingLink ? (
+                  <Link
+                    href={meeting.meetingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 hover:text-blue-900 break-all"
+                  >
+                    {meeting.meetingLink}
+                  </Link>
+                ) : (
+                  "—"
+                )}
+              </dd>
+            </>
+          ) : (
+            <>
+              <dt className="text-gray-500">Adresse</dt>
+              <dd>{meeting.address}</dd>
+              <dt className="text-gray-500">Rom</dt>
+              <dd>{meeting.room || "—"}</dd>
+            </>
+          )}
           <dt className="text-gray-500">Dato</dt>
           <dd>{formatDate(meeting.date)}</dd>
           <dt className="text-gray-500">Klokkeslett</dt>
@@ -121,6 +164,57 @@ export default async function MeetingDetailPage({
         </div>
       </div>
 
+      {attachmentLinks.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+          <h2 className="font-semibold text-gray-900 mb-3">Vedlegg til innkalling</h2>
+          <p className="text-xs text-gray-500 mb-3">
+            Vedlegg legges ved i e-post når størrelse tillater det. Store filer sendes som lenker.
+          </p>
+          <div className="space-y-2">
+            {attachmentLinks.map((attachment) => (
+              <div
+                key={attachment.id}
+                className="flex items-center justify-between gap-3 rounded-md border border-gray-100 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{attachment.fileName}</p>
+                  <p className="text-xs text-gray-500">
+                    {attachment.fileSize
+                      ? `${(attachment.fileSize / (1024 * 1024)).toFixed(1)} MB`
+                      : "Fil"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  {attachment.signedUrl ? (
+                    <Link
+                      href={attachment.signedUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-700 hover:text-blue-900 font-medium"
+                    >
+                      Åpne
+                    </Link>
+                  ) : (
+                    <span className="text-xs text-gray-400">Utilgjengelig</span>
+                  )}
+                  {canEditAttachments && (
+                    <form action={removeInvitationAttachment}>
+                      <input type="hidden" name="attachmentId" value={attachment.id} />
+                      <button
+                        type="submit"
+                        className="text-xs text-red-600 hover:text-red-700 font-medium"
+                      >
+                        Fjern
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {meeting.status === "signed" && (
         <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
           <h2 className="font-semibold text-gray-900 mb-2">Signert protokoll</h2>
@@ -137,7 +231,7 @@ export default async function MeetingDetailPage({
             ) : (
               <span className="text-sm text-gray-500">Ingen fil lagret ennå.</span>
             )}
-            {canManage && (
+            {canManage && meeting.signingMethod !== "provider_bankid" && (
               <form action={regenerateSignedProtocol}>
                 <input type="hidden" name="meetingId" value={meeting.id} />
                 <button
@@ -177,6 +271,14 @@ export default async function MeetingDetailPage({
                     <span className="text-xs text-green-600 font-medium">
                       Signert {new Date(sig.signedAt).toLocaleDateString("nb-NO")}
                     </span>
+                  ) : sig.providerStatus === "viewed" ? (
+                    <span className="text-xs text-blue-600 font-medium">Åpnet</span>
+                  ) : sig.providerStatus === "sent" || sig.providerStatus === "created" ? (
+                    <span className="text-xs text-gray-500">Sendt</span>
+                  ) : sig.providerStatus === "failed" ? (
+                    <span className="text-xs text-red-600 font-medium">Feilet</span>
+                  ) : sig.providerStatus === "expired" ? (
+                    <span className="text-xs text-orange-600 font-medium">Utløpt</span>
                   ) : (
                     <span className="text-xs text-gray-400">Venter</span>
                   )}
@@ -184,6 +286,16 @@ export default async function MeetingDetailPage({
               );
             })}
           </div>
+        </div>
+      )}
+
+      {canManage && (
+        <div className="bg-white border border-gray-200 rounded-lg p-5">
+          <h2 className="font-semibold text-gray-900 mb-2">Møteadministrasjon</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Slett møtet hvis det er opprettet feil eller ikke lenger skal brukes.
+          </p>
+          <MeetingDeleteButton meetingId={meeting.id} variant="text" />
         </div>
       )}
     </div>

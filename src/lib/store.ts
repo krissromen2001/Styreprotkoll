@@ -5,6 +5,7 @@ import {
   boardMembers,
   companies,
   emailVerificationTokens,
+  meetingAttachments,
   meetings,
   meetingAttendees,
   signatures,
@@ -19,6 +20,11 @@ export interface Company {
   address: string | null;
   postalCode: string | null;
   city: string | null;
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  stripeSubscriptionStatus?: string | null;
+  stripePriceId?: string | null;
+  stripeCurrentPeriodEnd?: Date | null;
   createdAt: Date;
 }
 
@@ -42,10 +48,22 @@ export interface AgendaItem {
   decision: string | null;
 }
 
+export interface MeetingAttachment {
+  id: string;
+  meetingId: string;
+  fileName: string;
+  storagePath: string;
+  contentType: string | null;
+  fileSize: number | null;
+  createdAt: Date;
+}
+
 export interface Meeting {
   id: string;
   companyId: string;
   title: string | null;
+  meetingMode?: "physical" | "digital" | null;
+  meetingLink?: string | null;
   address: string | null;
   room: string | null;
   date: string;
@@ -53,6 +71,12 @@ export interface Meeting {
   type: "board_meeting" | "general_assembly" | "extraordinary_general_assembly";
   status: "draft" | "invitation_sent" | "protocol_draft" | "pending_signatures" | "signed";
   protocolStoragePath: string | null;
+  signedProtocolStoragePath?: string | null;
+  signingProvider?: string | null;
+  signingMethod?: string | null;
+  signingProviderSessionId?: string | null;
+  signatureLevel?: string | null;
+  signingCompletedAt?: Date | null;
   createdById: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -63,7 +87,14 @@ export interface Signature {
   meetingId: string;
   boardMemberId: string;
   signedAt: Date | null;
+  signedAtProvider?: Date | null;
   typedName: string | null;
+  provider?: string | null;
+  providerSignerId?: string | null;
+  providerStatus?: string | null;
+  signatureLevel?: string | null;
+  evidenceStoragePath?: string | null;
+  rawProviderMeta?: string | null;
 }
 
 export interface MeetingAttendee {
@@ -92,6 +123,38 @@ export interface EmailVerificationToken {
   createdAt: Date;
 }
 
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  passwordHash: string | null;
+  emailVerified: Date | null;
+  googleCalendarAccessToken?: string | null;
+  googleCalendarRefreshToken?: string | null;
+  googleCalendarTokenExpiresAt?: Date | null;
+  createdAt: Date;
+}
+
+// --- Companies ---
+// --- Users ---
+export async function getUserByEmail(email: string): Promise<User | undefined> {
+  const rows = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email.toLowerCase().trim()))
+    .limit(1);
+  return rows[0];
+}
+
+export async function updateUser(id: string, data: Partial<User>): Promise<User | null> {
+  const rows = await db
+    .update(users)
+    .set(data)
+    .where(eq(users.id, id))
+    .returning();
+  return rows[0] ?? null;
+}
+
 // --- Companies ---
 export async function getCompanies(): Promise<Company[]> {
   return db.select().from(companies).orderBy(asc(companies.createdAt));
@@ -106,6 +169,11 @@ export async function getCompaniesForUser(email: string): Promise<Company[]> {
       address: companies.address,
       postalCode: companies.postalCode,
       city: companies.city,
+      stripeCustomerId: companies.stripeCustomerId,
+      stripeSubscriptionId: companies.stripeSubscriptionId,
+      stripeSubscriptionStatus: companies.stripeSubscriptionStatus,
+      stripePriceId: companies.stripePriceId,
+      stripeCurrentPeriodEnd: companies.stripeCurrentPeriodEnd,
       createdAt: companies.createdAt,
     })
     .from(companies)
@@ -131,6 +199,40 @@ export async function getCompanyByOrg(orgNumber: string): Promise<Company | unde
 
 export async function createCompany(data: Omit<Company, "id" | "createdAt">): Promise<Company> {
   const rows = await db.insert(companies).values(data).returning();
+  return rows[0];
+}
+
+export async function updateCompany(
+  id: string,
+  data: Partial<Company>
+): Promise<Company | null> {
+  const rows = await db
+    .update(companies)
+    .set(data)
+    .where(eq(companies.id, id))
+    .returning();
+  return rows[0] ?? null;
+}
+
+export async function getCompanyByStripeCustomerId(
+  stripeCustomerId: string
+): Promise<Company | undefined> {
+  const rows = await db
+    .select()
+    .from(companies)
+    .where(eq(companies.stripeCustomerId, stripeCustomerId))
+    .limit(1);
+  return rows[0];
+}
+
+export async function getCompanyByStripeSubscriptionId(
+  stripeSubscriptionId: string
+): Promise<Company | undefined> {
+  const rows = await db
+    .select()
+    .from(companies)
+    .where(eq(companies.stripeSubscriptionId, stripeSubscriptionId))
+    .limit(1);
   return rows[0];
 }
 
@@ -241,6 +343,51 @@ export async function getMeeting(id: string): Promise<Meeting | undefined> {
   return rows[0];
 }
 
+export async function getMeetingBySigningProviderSessionId(
+  providerSessionId: string
+): Promise<Meeting | undefined> {
+  const rows = await db
+    .select()
+    .from(meetings)
+    .where(eq(meetings.signingProviderSessionId, providerSessionId));
+  return rows[0];
+}
+
+export async function getMeetingByProviderSignerSessionId(
+  providerSignerSessionId: string
+): Promise<Meeting | undefined> {
+  const rows = await db
+    .select({
+      id: meetings.id,
+      companyId: meetings.companyId,
+      title: meetings.title,
+      meetingMode: meetings.meetingMode,
+      meetingLink: meetings.meetingLink,
+      address: meetings.address,
+      room: meetings.room,
+      date: meetings.date,
+      time: meetings.time,
+      type: meetings.type,
+      status: meetings.status,
+      protocolStoragePath: meetings.protocolStoragePath,
+      signedProtocolStoragePath: meetings.signedProtocolStoragePath,
+      signingProvider: meetings.signingProvider,
+      signingMethod: meetings.signingMethod,
+      signingProviderSessionId: meetings.signingProviderSessionId,
+      signatureLevel: meetings.signatureLevel,
+      signingCompletedAt: meetings.signingCompletedAt,
+      createdById: meetings.createdById,
+      createdAt: meetings.createdAt,
+      updatedAt: meetings.updatedAt,
+    })
+    .from(meetings)
+    .innerJoin(signatures, eq(signatures.meetingId, meetings.id))
+    .where(eq(signatures.providerSignerId, providerSignerSessionId))
+    .limit(1);
+
+  return rows[0];
+}
+
 export async function createMeeting(
   data: Omit<Meeting, "id" | "createdAt" | "updatedAt">
 ): Promise<Meeting> {
@@ -302,6 +449,35 @@ export async function getAgendaItems(meetingId: string): Promise<AgendaItem[]> {
     .from(agendaItems)
     .where(eq(agendaItems.meetingId, meetingId))
     .orderBy(asc(agendaItems.sortOrder));
+}
+
+// --- Meeting Attachments ---
+export async function getMeetingAttachments(meetingId: string): Promise<MeetingAttachment[]> {
+  return db
+    .select()
+    .from(meetingAttachments)
+    .where(eq(meetingAttachments.meetingId, meetingId))
+    .orderBy(asc(meetingAttachments.createdAt));
+}
+
+export async function getMeetingAttachment(id: string): Promise<MeetingAttachment | undefined> {
+  const rows = await db
+    .select()
+    .from(meetingAttachments)
+    .where(eq(meetingAttachments.id, id))
+    .limit(1);
+  return rows[0];
+}
+
+export async function createMeetingAttachment(
+  data: Omit<MeetingAttachment, "id" | "createdAt">
+): Promise<MeetingAttachment> {
+  const rows = await db.insert(meetingAttachments).values(data).returning();
+  return rows[0];
+}
+
+export async function deleteMeetingAttachment(id: string): Promise<void> {
+  await db.delete(meetingAttachments).where(eq(meetingAttachments.id, id));
 }
 
 export async function getAgendaCountForCompanyYear(

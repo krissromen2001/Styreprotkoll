@@ -1,18 +1,41 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { signIn as nextAuthSignIn } from "next-auth/react";
 import { checkEmailVerification } from "@/lib/actions/auth";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
+
+  useEffect(() => {
+    setGoogleAvailable(
+      Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    );
+  }, []);
+
+  const handleGoogleSignIn = async () => {
+    const redirectTo = `${window.location.origin}/auth/callback`;
+    await getSupabaseBrowserClient().auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo,
+        scopes: "openid email profile https://www.googleapis.com/auth/calendar.events",
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +45,7 @@ function SignInForm() {
       setLoading(false);
       return window.location.assign("/auth/signin?error=EmailNotVerified");
     }
-    await signIn("credentials", { email, password, callbackUrl: "/dashboard" });
+    await nextAuthSignIn("credentials", { email, password, callbackUrl: "/dashboard" });
   };
 
   return (
@@ -32,6 +55,22 @@ function SignInForm() {
         <p className="text-gray-600 mb-6">
           Logg inn med e-post og passord.
         </p>
+        {googleAvailable && (
+          <>
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              className="w-full border border-gray-300 py-2 px-4 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              Fortsett med Google
+            </button>
+            <div className="flex items-center gap-3 my-4 text-xs text-gray-500">
+              <div className="h-px bg-gray-200 flex-1" />
+              <span>Eller</span>
+              <div className="h-px bg-gray-200 flex-1" />
+            </div>
+          </>
+        )}
         {error && (
           <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm mb-4">
             {error === "EmailNotVerified"

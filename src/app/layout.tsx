@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Manrope, Fraunces } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/header";
+import { Footer } from "@/components/layout/footer";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -29,6 +30,7 @@ export default function RootLayout({
         <main className="max-w-6xl mx-auto px-4 py-10">
           {children}
         </main>
+        <Footer />
       </body>
     </html>
   );

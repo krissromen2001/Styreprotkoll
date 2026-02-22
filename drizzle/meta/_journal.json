@@ -50,6 +50,41 @@
       "when": 1771708747010,
       "tag": "0006_aberrant_satana",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1771880000000,
+      "tag": "0007_tan_signing_provider",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771760388000,
+      "tag": "0008_mellow_armor",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771762400000,
+      "tag": "0009_stripe_billing",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1771782000000,
+      "tag": "0010_meeting_mode_and_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1771782600000,
+      "tag": "0011_google_calendar_tokens",
+      "breakpoints": true
     }
   ]
 }

@@ -3,21 +3,23 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { sendInvitation, sendForSignatures, deleteMeeting } from "@/lib/actions/meetings";
+import { sendInvitation, sendForSignatures } from "@/lib/actions/meetings";
 
 export function MeetingActions({
   meetingId,
   status,
   canManage = false,
+  showInAppSignLink = true,
 }: {
   meetingId: string;
   status: string;
   canManage?: boolean;
+  showInAppSignLink?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [loading, setLoading] = useState<"invite" | "sign" | "delete" | null>(null);
+  const [loading, setLoading] = useState<"invite" | "sign-provider" | "sign-legacy" | null>(null);
 
   const handleInvite = async () => {
     setError(null);
@@ -33,32 +35,22 @@ export function MeetingActions({
     setLoading(null);
   };
 
-  const handleSign = async () => {
+  const handleSign = async (mode: "provider" | "legacy") => {
     setError(null);
     setSuccess(null);
-    setLoading("sign");
-    const result = await sendForSignatures(meetingId);
+    setLoading(mode === "provider" ? "sign-provider" : "sign-legacy");
+    const result = await sendForSignatures(meetingId, mode);
     if (result?.error) {
       setError(result.error);
     } else {
-      setSuccess("Sendt til signering");
+      setSuccess(
+        mode === "provider"
+          ? "Sendt til BankID-signering"
+          : "Sendt med signaturlenker"
+      );
       router.refresh();
     }
     setLoading(null);
-  };
-
-  const handleDelete = async () => {
-    setError(null);
-    setSuccess(null);
-    const ok = window.confirm("Er du sikker på at du vil slette møtet? Dette kan ikke angres.");
-    if (!ok) return;
-    setLoading("delete");
-    const result = await deleteMeeting(meetingId);
-    if (result?.error) {
-      setError(result.error);
-      setLoading(null);
-      return;
-    }
   };
 
   return (
@@ -98,15 +90,22 @@ export function MeetingActions({
               Rediger protokoll
             </Link>
             <button
-              onClick={handleSign}
-              disabled={loading === "sign"}
+              onClick={() => handleSign("provider")}
+              disabled={loading === "sign-provider" || loading === "sign-legacy"}
               className="px-3 py-1.5 text-sm bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50"
             >
-              {loading === "sign" ? "Sender..." : "Send til signering"}
+              {loading === "sign-provider" ? "Sender..." : "Send med BankID"}
+            </button>
+            <button
+              onClick={() => handleSign("legacy")}
+              disabled={loading === "sign-provider" || loading === "sign-legacy"}
+              className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              {loading === "sign-legacy" ? "Sender..." : "Send med signaturlenke"}
             </button>
           </>
         )}
-        {status === "pending_signatures" && (
+        {status === "pending_signatures" && showInAppSignLink && (
           <Link
             href={`/meetings/${meetingId}/sign`}
             className="px-3 py-1.5 text-sm bg-black text-white rounded-md hover:bg-gray-800"
@@ -114,14 +113,10 @@ export function MeetingActions({
             Signer protokoll
           </Link>
         )}
-        {canManage && (
-          <button
-            onClick={handleDelete}
-            disabled={loading === "delete"}
-            className="px-3 py-1.5 text-sm border border-red-300 text-red-600 rounded-md hover:bg-red-50 disabled:opacity-50"
-          >
-            {loading === "delete" ? "Sletter..." : "Slett møte"}
-          </button>
+        {status === "pending_signatures" && !showInAppSignLink && (
+          <span className="px-3 py-1.5 text-sm border border-gray-300 rounded-md text-gray-500">
+            Signering pågår hos signeringsleverandør
+          </span>
         )}
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}

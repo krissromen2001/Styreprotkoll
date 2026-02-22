@@ -1,56 +1,140 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Styreprotokoll
 
-## Getting Started
+Next.js app for innkalling, protokoll, signering and board meeting administration.
 
-First, run the development server:
+## Local Development (Hosted Supabase)
 
+This project can be developed locally (`http://localhost:3000`) while using the same hosted Supabase project as production.
+
+### 1. Install dependencies
+```bash
+npm install
+```
+
+### 2. Create local env file
+Create `.env.local` based on `.env.example`.
+
+Important local values:
+```env
+NEXTAUTH_URL=http://localhost:3000
+
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_URL=https://<your-project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+```
+
+If you use Stripe locally:
+```env
+STRIPE_BILLING_MODE=payment
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...
+```
+
+### 3. Start the app
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 4. Supabase Auth redirect settings (critical)
+To avoid being redirected to your Vercel URL when logging in with Google from localhost:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Supabase Dashboard -> `Authentication` -> `URL Configuration`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `Site URL`:
+  - production URL (for example `https://styreprotokoll.vercel.app`)
+- `Redirect URLs` must include **both**:
+  - `http://localhost:3000/auth/callback`
+  - `https://styreprotokoll.vercel.app/auth/callback`
+  - (and custom domain callback if used)
 
-## Learn More
+Google Cloud Console (for Supabase Google provider) should continue using the **Supabase callback**, not your app callback:
+- `https://<your-project>.supabase.co/auth/v1/callback`
 
-To learn more about Next.js, take a look at the following resources:
+## Build Checks
+Run before pushing:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## Database Setup (Vercel Postgres + Drizzle)
-
-1. Create a `.env.local` based on `.env.example` and set `DATABASE_URL` (or `POSTGRES_URL`), `NEXTAUTH_URL`, `NEXTAUTH_SECRET`, `RESEND_API_KEY`.
-2. Generate a migration from the schema:
 ```bash
-npm run db:generate
+npm run lint
+npm run build
 ```
-3. Apply migrations to your database:
-```bash
-DATABASE_URL=postgresql://... npm run db:migrate
-```
+
+## Database (Drizzle + Supabase Postgres)
+
+Schema lives in:
+- `src/lib/db/schema.ts`
+
+Migrations live in:
+- `drizzle/`
 
 Useful commands:
 ```bash
+npm run db:generate
+npm run db:migrate
 npm run db:push
 npm run db:studio
 ```
 
-The schema is defined in `src/lib/db/schema.ts` and migrations are output to `drizzle/`.
+Note: If `drizzle-kit push` crashes in your environment, apply the SQL manually in Supabase SQL Editor using the migration files in `drizzle/`.
+
+## Deploy to Vercel
+
+### 1. Push code
+```bash
+git add .
+git commit -m "Your message"
+git push
+```
+
+### 2. Deploy
+If your Vercel project is linked:
+```bash
+vercel deploy --prod
+```
+
+### 3. Set Vercel environment variables
+At minimum:
+- `NEXTAUTH_URL=https://your-domain.vercel.app`
+- `NEXTAUTH_SECRET`
+- `DATABASE_URL` or `POSTGRES_URL`
+- `RESEND_API_KEY`
+- Supabase vars:
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+If using Stripe:
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRICE_ID`
+- `STRIPE_BILLING_MODE`
+
+If using Signicat:
+- `SIGNING_PROVIDER`
+- `SIGNICAT_*`
+
+### 4. Apply DB schema changes to hosted Supabase
+Deploying Vercel does **not** migrate your Supabase database automatically.
+
+For each release with schema changes:
+1. Open Supabase SQL Editor
+2. Run the SQL from the new file(s) in `drizzle/`
+3. Verify tables/columns exist
+
+## Release Checklist
+
+- `npm run lint` passes
+- `npm run build` passes
+- Vercel env vars are correct (`NEXTAUTH_URL` is not localhost)
+- Supabase `Redirect URLs` include both localhost and production callback
+- New SQL migrations from `drizzle/` applied to hosted Supabase
+- Webhooks updated (Stripe / Signicat) if URLs changed
+- Smoke test in production:
+  - Google login
+  - create meeting
+  - send innkalling
+  - attachments
+  - payment/signing flow (if enabled)
+

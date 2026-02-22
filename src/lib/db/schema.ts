@@ -32,6 +32,9 @@ export const users = pgTable("users", {
   name: varchar("name", { length: 255 }),
   passwordHash: text("password_hash"),
   emailVerified: timestamp("email_verified"),
+  googleCalendarAccessToken: text("google_calendar_access_token"),
+  googleCalendarRefreshToken: text("google_calendar_refresh_token"),
+  googleCalendarTokenExpiresAt: timestamp("google_calendar_token_expires_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -54,6 +57,11 @@ export const companies = pgTable("companies", {
   address: text("address"),
   postalCode: varchar("postal_code", { length: 10 }),
   city: varchar("city", { length: 100 }),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+  stripeSubscriptionStatus: varchar("stripe_subscription_status", { length: 100 }),
+  stripePriceId: varchar("stripe_price_id", { length: 255 }),
+  stripeCurrentPeriodEnd: timestamp("stripe_current_period_end"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -78,6 +86,8 @@ export const meetings = pgTable("meetings", {
     .notNull()
     .references(() => companies.id),
   title: varchar("title", { length: 500 }),
+  meetingMode: varchar("meeting_mode", { length: 20 }).default("physical"),
+  meetingLink: text("meeting_link"),
   address: text("address"),
   room: varchar("room", { length: 255 }),
   date: varchar("date", { length: 20 }).notNull(),
@@ -85,6 +95,12 @@ export const meetings = pgTable("meetings", {
   type: meetingTypeEnum("type").notNull().default("board_meeting"),
   status: meetingStatusEnum("status").notNull().default("draft"),
   protocolStoragePath: text("protocol_storage_path"),
+  signedProtocolStoragePath: text("signed_protocol_storage_path"),
+  signingProvider: varchar("signing_provider", { length: 100 }),
+  signingMethod: varchar("signing_method", { length: 100 }),
+  signingProviderSessionId: varchar("signing_provider_session_id", { length: 255 }),
+  signatureLevel: varchar("signature_level", { length: 50 }),
+  signingCompletedAt: timestamp("signing_completed_at"),
   createdById: uuid("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -102,6 +118,19 @@ export const agendaItems = pgTable("agenda_items", {
   decision: text("decision"),
 });
 
+// Meeting attachments — files attached to the invitation (budget, portfolio, etc.)
+export const meetingAttachments = pgTable("meeting_attachments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  meetingId: uuid("meeting_id")
+    .notNull()
+    .references(() => meetings.id, { onDelete: "cascade" }),
+  fileName: varchar("file_name", { length: 500 }).notNull(),
+  storagePath: text("storage_path").notNull(),
+  contentType: varchar("content_type", { length: 255 }),
+  fileSize: integer("file_size"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Signatures — links board member to meeting
 export const signatures = pgTable("signatures", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -112,7 +141,14 @@ export const signatures = pgTable("signatures", {
     .notNull()
     .references(() => boardMembers.id),
   signedAt: timestamp("signed_at"),
+  signedAtProvider: timestamp("signed_at_provider"),
   typedName: varchar("typed_name", { length: 255 }),
+  provider: varchar("provider", { length: 100 }),
+  providerSignerId: varchar("provider_signer_id", { length: 255 }),
+  providerStatus: varchar("provider_status", { length: 100 }),
+  signatureLevel: varchar("signature_level", { length: 50 }),
+  evidenceStoragePath: text("evidence_storage_path"),
+  rawProviderMeta: text("raw_provider_meta"),
   ipAddress: varchar("ip_address", { length: 45 }),
   userAgent: text("user_agent"),
 });

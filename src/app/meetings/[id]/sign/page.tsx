@@ -40,11 +40,14 @@ export default async function SignProtocolPage({
       );
     }
 
-    if (signingToken.usedAt || signingToken.expiresAt.getTime() < Date.now()) {
+    const member = await getBoardMember(signingToken.boardMemberId);
+    const sig = await getSignatureByMember(meetingId, signingToken.boardMemberId);
+
+    if (sig?.signedAt) {
       return (
         <div className="max-w-3xl mx-auto">
           <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">Signeringslenken er utløpt eller allerede brukt.</p>
+            <p className="text-gray-500 mb-4">Protokollen er signert.</p>
             <Link href="/dashboard" className="text-sm text-black hover:underline">
               Tilbake til oversikten
             </Link>
@@ -53,13 +56,11 @@ export default async function SignProtocolPage({
       );
     }
 
-    const member = await getBoardMember(signingToken.boardMemberId);
-    const sig = await getSignatureByMember(meetingId, signingToken.boardMemberId);
-    if (sig?.signedAt) {
+    if (signingToken.usedAt || signingToken.expiresAt.getTime() < Date.now()) {
       return (
         <div className="max-w-3xl mx-auto">
           <div className="text-center py-16">
-            <p className="text-gray-500 mb-4">Du har allerede signert denne protokollen.</p>
+            <p className="text-gray-500 mb-4">Signeringslenken er utløpt eller allerede brukt.</p>
             <Link href="/dashboard" className="text-sm text-black hover:underline">
               Tilbake til oversikten
             </Link>

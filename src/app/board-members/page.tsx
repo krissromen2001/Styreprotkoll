@@ -5,7 +5,6 @@ import { AddBoardMemberForm } from "@/components/board-members/add-member-form";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getSelectedCompanyId } from "@/lib/company-selection";
-import { CompanySwitcher } from "@/components/companies/company-switcher";
 import { BoardMemberEmail } from "@/components/board-members/board-member-email";
 
 export const dynamic = "force-dynamic";
@@ -63,10 +62,6 @@ export default async function BoardMembersPage() {
           <h1 className="text-2xl font-bold text-gray-900">Styremedlemmer</h1>
           <p className="text-gray-600 mt-1">{company.name}</p>
         </div>
-        <CompanySwitcher
-          companies={companies.map((c) => ({ id: c.id, name: c.name }))}
-          activeCompanyId={company.id}
-        />
       </div>
 
       {canManage && <AddBoardMemberForm companyId={company.id} />}

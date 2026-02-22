@@ -6,10 +6,14 @@ import {
   getCompaniesForUser,
   getMeetings,
   getBoardMembers,
+  getBoardMemberByEmail,
 } from "@/lib/store";
 import { formatDate } from "@/lib/utils";
 import { auth } from "@/lib/auth";
 import { getSelectedCompanyId } from "@/lib/company-selection";
+import { MeetingDeleteButton } from "@/components/meetings/meeting-delete-button";
+import { openStripeBillingPortal, startStripeCheckout } from "@/lib/actions/billing";
+import { getStripeBillingMode } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +61,15 @@ export default async function DashboardPage() {
   const selectedId = (await getSelectedCompanyId()) ?? companies[0].id;
   const activeCompany = companies.find((c) => c.id === selectedId) ?? companies[0];
   const meetings = await getMeetings(activeCompany.id);
+  const activeMembership = await getBoardMemberByEmail(activeCompany.id, session.user.email);
+  const canDeleteMeetings = activeMembership?.role === "styreleder";
+  const canManageBilling = activeMembership?.role === "styreleder";
+  const stripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PRICE_ID);
+  const stripeBillingMode = getStripeBillingMode();
+  const billingActive = ["active", "trialing", "past_due"].includes(
+    activeCompany.stripeSubscriptionStatus || ""
+  );
+  const oneTimePaid = activeCompany.stripeSubscriptionStatus === "paid_once";
 
   const meetingCards = await Promise.all(
     meetings.map(async (meeting) => {
@@ -66,45 +79,105 @@ export default async function DashboardPage() {
       const signedCount = sigs.filter((s) => s.signedAt).length;
 
       return (
-        <Link
+        <div
           key={meeting.id}
-          href={`/meetings/${meeting.id}`}
-          className="block bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors"
+          className="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors"
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3">
-                <h2 className="font-semibold text-gray-900">
-                  {MEETING_TYPE_LABELS[meeting.type]} – {formatDate(meeting.date)}
-                </h2>
-                <span
-                  className={`text-xs px-2 py-1 rounded-full font-medium ${
-                    MEETING_STATUS_COLORS[meeting.status]
-                  }`}
-                >
-                  {MEETING_STATUS_LABELS[meeting.status]}
-                </span>
+          <div className="flex items-start justify-between gap-3">
+            <Link href={`/meetings/${meeting.id}`} className="block flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <h2 className="font-semibold text-gray-900">
+                      {MEETING_TYPE_LABELS[meeting.type]} – {formatDate(meeting.date)}
+                    </h2>
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        MEETING_STATUS_COLORS[meeting.status]
+                      }`}
+                    >
+                      {MEETING_STATUS_LABELS[meeting.status]}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Kl. {meeting.time} — {meeting.room || meeting.address}
+                  </p>
+                </div>
+                <div className="text-right text-sm text-gray-500 shrink-0">
+                  <p>{items.length} saker</p>
+                  {(meeting.status === "pending_signatures" || meeting.status === "signed") && (
+                    <p>
+                      {signedCount}/{members.filter((m) => m.active).length} signaturer
+                    </p>
+                  )}
+                </div>
               </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Kl. {meeting.time} — {meeting.room || meeting.address}
-              </p>
-            </div>
-            <div className="text-right text-sm text-gray-500">
-              <p>{items.length} saker</p>
-              {(meeting.status === "pending_signatures" || meeting.status === "signed") && (
-                <p>
-                  {signedCount}/{members.filter((m) => m.active).length} signaturer
-                </p>
-              )}
-            </div>
+            </Link>
+            {canDeleteMeetings && <MeetingDeleteButton meetingId={meeting.id} variant="icon" />}
           </div>
-        </Link>
+        </div>
       );
     })
   );
 
   return (
     <div>
+      <div className="bg-white border border-gray-200 rounded-lg p-5 mb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">
+              {stripeBillingMode === "payment" ? "Betaling" : "Abonnement"}
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              {stripeConfigured
+                ? stripeBillingMode === "payment"
+                  ? oneTimePaid
+                    ? "Engangsbetaling registrert"
+                    : "Ingen engangsbetaling registrert"
+                  : billingActive
+                    ? `Status: ${activeCompany.stripeSubscriptionStatus || "aktiv"}`
+                    : "Ingen aktivt abonnement registrert"
+                : "Stripe er ikke konfigurert ennå"}
+            </p>
+            {stripeBillingMode === "payment" && (
+              <p className="text-xs text-gray-500 mt-1">
+                Betal én gang per selskap for å låse opp videre bruk.
+              </p>
+            )}
+            {stripeBillingMode === "subscription" && activeCompany.stripeCurrentPeriodEnd && (
+              <p className="text-xs text-gray-500 mt-1">
+                Neste fornyelse: {activeCompany.stripeCurrentPeriodEnd.toLocaleDateString("nb-NO")}
+              </p>
+            )}
+          </div>
+          {canManageBilling && stripeConfigured && (
+            <div className="flex flex-wrap gap-2">
+              {((stripeBillingMode === "payment" && !oneTimePaid) ||
+                (stripeBillingMode === "subscription" && !billingActive)) && (
+                <form action={startStripeCheckout}>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-md bg-black text-white text-sm font-medium hover:bg-gray-800"
+                  >
+                    {stripeBillingMode === "payment" ? "Betal nå" : "Start abonnement"}
+                  </button>
+                </form>
+              )}
+              {stripeBillingMode === "subscription" && activeCompany.stripeCustomerId && (
+                <form action={openStripeBillingPortal}>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-md border border-gray-300 text-sm font-medium hover:bg-gray-50"
+                  >
+                    Administrer abonnement
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Styremøter</h1>

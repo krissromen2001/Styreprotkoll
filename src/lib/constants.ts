@@ -37,6 +37,14 @@ export const DEFAULT_LAST_AGENDA_ITEM = {
   description: "",
 };
 
+export const DEFAULT_OPTIONAL_BOARD_AGENDA_ITEMS = [
+  {
+    key: "finance-review",
+    title: "Økonomioppdatering og regnskapsgjennomgang",
+    description: "",
+  },
+];
+
 export const DEFAULT_GENERAL_ASSEMBLY_ITEMS = [
   { title: "Valg av møteleder", description: "" },
   { title: "Valg av referent", description: "" },

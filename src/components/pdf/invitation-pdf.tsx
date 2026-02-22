@@ -5,13 +5,17 @@ const styles = StyleSheet.create({
   page: { padding: 60, fontFamily: "Helvetica", fontSize: 11, lineHeight: 1.5 },
   title: { fontSize: 26, marginBottom: 20, fontFamily: "Helvetica" },
   subtitle: { fontSize: 11, marginBottom: 4 },
-  bold: { fontFamily: "Helvetica-Bold" },
   section: { marginBottom: 12 },
   agendaTitle: { fontSize: 18, marginTop: 16, marginBottom: 6, fontFamily: "Helvetica" },
   agendaDescription: { fontSize: 11, marginBottom: 12 },
   metaLabel: { fontSize: 11 },
   separator: { marginTop: 20, marginBottom: 8 },
 });
+
+function formatOrgNumber(orgNumber: string) {
+  const digits = (orgNumber || "").replace(/\s+/g, "");
+  return digits.replace(/(\d{3})(\d{3})(\d{3})/, "$1 $2 $3");
+}
 
 interface AgendaItem {
   sortOrder: number;
@@ -24,10 +28,13 @@ interface InvitationPDFProps {
   orgNumber: string;
   address: string;
   room: string;
+  meetingMode?: "physical" | "digital";
+  meetingLink?: string;
   date: string;
   time: string;
   meetingType?: "board_meeting" | "general_assembly" | "extraordinary_general_assembly";
   agendaItems: AgendaItem[];
+  attachmentNames?: string[];
 }
 
 export function InvitationPDF({
@@ -35,11 +42,15 @@ export function InvitationPDF({
   orgNumber,
   address,
   room,
+  meetingMode = "physical",
+  meetingLink = "",
   date,
   time,
   meetingType = "board_meeting",
   agendaItems,
+  attachmentNames = [],
 }: InvitationPDFProps) {
+  const formattedOrgNumber = formatOrgNumber(orgNumber);
   const meetingTitle =
     meetingType === "general_assembly"
       ? "Generalforsamling"
@@ -54,10 +65,7 @@ export function InvitationPDF({
 
         <View style={styles.section}>
           <Text style={styles.subtitle}>
-            Til alle styremedlemmer i {companyName}, organisasjonsnummer {orgNumber}
-          </Text>
-          <Text style={styles.subtitle}>
-            (&quot;<Text style={styles.bold}>Selskapet</Text>&quot;).
+            Til alle styremedlemmer i {companyName} (org.nr. {formattedOrgNumber}).
           </Text>
         </View>
 
@@ -66,8 +74,17 @@ export function InvitationPDF({
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.metaLabel}>Adresse: {address}</Text>
-          <Text style={styles.metaLabel}>Rom: {room}</Text>
+          <Text style={styles.metaLabel}>
+            Møteform: {meetingMode === "digital" ? "Digitalt møte" : "Fysisk møte"}
+          </Text>
+          {meetingMode === "digital" ? (
+            <Text style={styles.metaLabel}>Møtelenke: {meetingLink}</Text>
+          ) : (
+            <>
+              <Text style={styles.metaLabel}>Adresse: {address}</Text>
+              {room?.trim() ? <Text style={styles.metaLabel}>Rom: {room}</Text> : null}
+            </>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -89,6 +106,17 @@ export function InvitationPDF({
             )}
           </View>
         ))}
+
+        {attachmentNames.length > 0 && (
+          <View style={{ marginTop: 16 }}>
+            <Text style={styles.agendaTitle}>Vedlegg</Text>
+            {attachmentNames.map((name, index) => (
+              <Text key={`${name}-${index}`} style={styles.agendaDescription}>
+                {index + 1}. {name}
+              </Text>
+            ))}
+          </View>
+        )}
       </Page>
     </Document>
   );
